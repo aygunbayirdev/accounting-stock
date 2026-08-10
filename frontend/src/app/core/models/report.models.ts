@@ -21,3 +21,21 @@ export interface DashboardStatsDto {
   totalPayables: string;
   cashStatus: CashStatusDto[];
 }
+
+// ========== Contact Statement (Cari Ekstre) ==========
+
+export interface ContactStatementLineDto {
+  dateUtc: string;
+  type: string; // "DEVİR" | "Satış Faturası" | "Alış Faturası" | "Tahsilat" | "Ödeme" | ...
+  documentNo: string;
+  description: string;
+  debt: string;    // Borç
+  credit: string;  // Alacak
+  balance: string; // Running balance
+}
+
+export interface ContactStatementDto {
+  contactId: number;
+  contactName: string;
+  items: ContactStatementLineDto[];
+}

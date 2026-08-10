@@ -1,8 +1,11 @@
 using Accounting.Application.Common.Abstractions;
 using Accounting.Application.Common.Exceptions;
+using Accounting.Application.Common.Extensions;
+using Accounting.Application.Common.Interfaces;
 using Accounting.Application.Reports.Queries.Dtos;
 using Accounting.Application.Services;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Accounting.Application.Reports.Queries.GetContactStatement;
 
@@ -10,16 +13,26 @@ public class GetContactStatementHandler : IRequestHandler<GetContactStatementQue
 {
     private readonly IAppDbContext _db;
     private readonly IContactBalanceService _balanceService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetContactStatementHandler(IAppDbContext db, IContactBalanceService balanceService)
+    public GetContactStatementHandler(IAppDbContext db, IContactBalanceService balanceService, ICurrentUserService currentUserService)
     {
         _db = db;
         _balanceService = balanceService;
+        _currentUserService = currentUserService;
     }
 
     public async Task<ContactStatementDto> Handle(GetContactStatementQuery request, CancellationToken ct)
     {
-        var contact = await _db.Contacts.FindAsync(new object[] { request.ContactId }, ct);
+        // IDOR koruması: cari, ApplyBranchFilter'dan geçirilerek aranıyor — HQ/Admin
+        // olmayan bir kullanıcı başka bir şubenin carisinin ekstresini göremesin
+        // (bkz. GetContactByIdHandler'daki aynı desen, GetDashboardStatsHandler'daki
+        // eşdeğer düzeltme).
+        var contact = await _db.Contacts
+            .AsNoTracking()
+            .ApplyBranchFilter(_currentUserService)
+            .FirstOrDefaultAsync(c => c.Id == request.ContactId, ct);
+
         if (contact == null || contact.IsDeleted)
             throw new NotFoundException("Contact", request.ContactId);
 

@@ -4,10 +4,10 @@
  * @see Accounting.Api.Controllers.ReportsController
  */
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { DashboardStatsDto } from '../models/report.models';
+import { DashboardStatsDto, ContactStatementDto } from '../models/report.models';
 
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
@@ -21,5 +21,31 @@ export class ReportsService {
     return this.http.get<DashboardStatsDto>(`${this.baseUrl}/dashboard`, {
       params: { branchId }
     });
+  }
+
+  /**
+   * GET /api/reports/contact/{contactId}/statement
+   */
+  getContactStatement(contactId: number, dateFrom?: string | null, dateTo?: string | null): Observable<ContactStatementDto> {
+    return this.http.get<ContactStatementDto>(`${this.baseUrl}/contact/${contactId}/statement`, {
+      params: this.buildStatementParams(dateFrom, dateTo)
+    });
+  }
+
+  /**
+   * GET /api/reports/contact/{contactId}/statement/export
+   */
+  exportContactStatement(contactId: number, dateFrom?: string | null, dateTo?: string | null): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/contact/${contactId}/statement/export`, {
+      params: this.buildStatementParams(dateFrom, dateTo),
+      responseType: 'blob'
+    });
+  }
+
+  private buildStatementParams(dateFrom?: string | null, dateTo?: string | null): HttpParams {
+    let params = new HttpParams();
+    if (dateFrom) params = params.set('dateFrom', dateFrom);
+    if (dateTo) params = params.set('dateTo', dateTo);
+    return params;
   }
 }
