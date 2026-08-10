@@ -27,7 +27,7 @@ export class CompanySettingsService {
   /**
    * PUT /api/company-settings
    */
-  update(body: UpdateCompanySettingsBody): Observable<void> {
-    return this.http.put<void>(this.baseUrl, body);
+  update(body: UpdateCompanySettingsBody): Observable<CompanySettingsDto> {
+    return this.http.put<CompanySettingsDto>(this.baseUrl, body);
   }
 }

@@ -47,6 +47,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/categories/categories-page.component').then(m => m.CategoriesPageComponent)
   },
+  {
+    path: 'company-settings',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/company-settings/company-settings-page.component').then(m => m.CompanySettingsPageComponent)
+  },
 
   // ---- Invoices (özeller önce) ----
   // `data.mode`: InvoicesEditPage bu değeri okuyarak insert/edit/view arasında
