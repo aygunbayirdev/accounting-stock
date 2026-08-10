@@ -23,6 +23,7 @@ public class GetChequeByIdHandler : IRequestHandler<GetChequeByIdQuery, ChequeDe
     {
         var cheque = await _db.Cheques
             .AsNoTracking()
+            .Include(c => c.Contact)
             .ApplyBranchFilter(_currentUserService)
             .FirstOrDefaultAsync(c => c.Id == request.Id, ct);
 
@@ -34,10 +35,16 @@ public class GetChequeByIdHandler : IRequestHandler<GetChequeByIdQuery, ChequeDe
             cheque.BranchId,
             cheque.ChequeNumber,
             cheque.Type.ToString(),
+            cheque.Direction.ToString(),
             cheque.Amount,
+            cheque.Currency,
+            cheque.IssueDate,
             cheque.DueDate,
+            cheque.ContactId,
+            cheque.Contact?.Name,
             cheque.DrawerName,
             cheque.BankName,
+            cheque.Description,
             cheque.Status.ToString(),
             cheque.CreatedAtUtc,
             cheque.UpdatedAtUtc,

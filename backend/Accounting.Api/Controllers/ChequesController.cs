@@ -2,6 +2,10 @@ using Accounting.Api.Contracts;
 using Accounting.Application.Cheques.Commands.Create;
 using Accounting.Application.Cheques.Commands.Delete;
 using Accounting.Application.Cheques.Commands.UpdateStatus;
+using Accounting.Application.Cheques.Queries.Dto;
+using Accounting.Application.Cheques.Queries.GetById;
+using Accounting.Application.Cheques.Queries.List;
+using Accounting.Application.Common.Models;
 using Accounting.Domain.Entities;
 using Accounting.Domain.Enums;
 using MediatR;
@@ -16,6 +20,20 @@ namespace Accounting.Api.Controllers;
 [ApiController]
 public class ChequesController(IMediator mediator) : ControllerBase
 {
+    [HttpGet]
+    [Authorize(Policy = Permissions.Cheque.Read)]
+    public async Task<ActionResult<PagedResult<ChequeDetailDto>>> GetList([FromQuery] ListChequesQuery query, CancellationToken ct)
+    {
+        return Ok(await mediator.Send(query, ct));
+    }
+
+    [HttpGet("{id}")]
+    [Authorize(Policy = Permissions.Cheque.Read)]
+    public async Task<ActionResult<ChequeDetailDto>> GetById(int id, CancellationToken ct)
+    {
+        return Ok(await mediator.Send(new GetChequeByIdQuery(id), ct));
+    }
+
     [HttpPost]
     [Authorize(Policy = Permissions.Cheque.Create)]
     public async Task<ActionResult<int>> Create(CreateChequeCommand command, CancellationToken ct)

@@ -1,8 +1,17 @@
 /**
  * Cheque Models (Çek/Senet)
- * 
+ *
  * Backend DTO'larıyla senkronize.
- * @see Accounting.Application.Cheques.Queries.Dto.ChequeDetailDto
+ * @see Accounting.Application.Cheques.Queries.Dto.ChequeDtos
+ *
+ * DİKKAT — bu modülde iki farklı enum-taşıma biçimi bir arada kullanılıyor:
+ * - Create body (`CreateChequeBody.type`/`direction`) ve UpdateStatus body
+ *   (`UpdateChequeStatusBody.newStatus`) enum'ları SAYI olarak bekliyor
+ *   (JsonStringEnumConverter kayıtlı değil — Order/Invoice'daki Type alanlarıyla aynı kural).
+ * - Ama liste filtreleri (`ListChequesQuery.status`/`type`/`direction`) backend'de
+ *   `c.Status.ToString() == request.Status` şeklinde karşılaştırılıyor, yani STRING
+ *   enum adı ("Pending", "Cheque", "Inbound") bekliyor — sayı DEĞİL. Read DTO'ları
+ *   (`ChequeDetailDto.type`/`direction`/`status`) da her zaman string döner.
  */
 
 // ============================================================================
@@ -10,54 +19,52 @@
 // ============================================================================
 
 export enum ChequeType {
-  Cheque = 1,           // Çek
-  PromissoryNote = 2    // Senet
+  Cheque = 1,
+  PromissoryNote = 2
+}
+
+export enum ChequeDirection {
+  Inbound = 1,  // Müşteriden alınan
+  Outbound = 2  // Tedarikçiye verilen
+}
+
+export enum ChequeStatus {
+  Pending = 1,   // Portföyde / Bekliyor
+  Paid = 2,      // Tahsil Edildi / Ödendi
+  Endorsed = 3,  // Ciro Edildi (sadece Inbound için)
+  Bounced = 4,   // Karşılıksız / Protestolu
+  Cancelled = 5  // İptal / İade
 }
 
 export type ChequeTypeStr = 'Cheque' | 'PromissoryNote';
-
-export enum ChequeDirection {
-  Inbound = 1,          // Müşteriden alınan (Giriş)
-  Outbound = 2          // Tedarikçiye verilen / Kendi evrakımız (Çıkış)
-}
-
 export type ChequeDirectionStr = 'Inbound' | 'Outbound';
-
-export enum ChequeStatus {
-  Pending = 1,          // Portföyde / Bekliyor
-  Paid = 2,             // Tahsil edildi / Ödendi
-  Endorsed = 3,         // Ciro edildi (Sadece Inbound için)
-  Bounced = 4,          // Karşılıksız / Protestolu
-  Cancelled = 5         // İptal / İade
-}
-
 export type ChequeStatusStr = 'Pending' | 'Paid' | 'Endorsed' | 'Bounced' | 'Cancelled';
 
 // ============================================================================
-// DTOs - READ (GET/LIST)
+// DTOs - READ (GET/LIST) — List de aynı ChequeDetailDto'yu döner (backend'de
+// ayrı bir ListItemDto tanımlı ama handler'da kullanılmıyor).
 // ============================================================================
 
-/**
- * Cheque Detail DTO (Read)
- * Backend: ChequeDetailDto
- */
 export interface ChequeDetailDto {
   id: number;
   branchId: number;
   chequeNumber: string;
-  type: string;                     // "Cheque" | "PromissoryNote"
+  type: ChequeTypeStr;
+  direction: ChequeDirectionStr;
   amount: string;                   // F2 - Money string
-  dueDateUtc: string;               // ISO-8601 UTC (Vade tarihi)
-  drawerName?: string | null;       // Keşideci / Borçlu adı
-  bankName?: string | null;         // Banka adı (sadece çek için)
-  status: string;                   // ChequeStatus enum as string
+  currency: string;
+  issueDate: string;                // ISO-8601 UTC
+  dueDate: string;                  // ISO-8601 UTC
+  contactId?: number | null;
+  contactName?: string | null;
+  drawerName?: string | null;
+  bankName?: string | null;
+  description?: string | null;
+  status: ChequeStatusStr;
   createdAtUtc: string;             // ISO-8601 UTC
+  updatedAtUtc?: string | null;
+  rowVersionBase64: string;         // Base64 — DİKKAT: alan adı "rowVersion" DEĞİL
 }
-
-/**
- * Cheque List Item DTO (Same as detail for now)
- */
-export type ChequeListItemDto = ChequeDetailDto;
 
 // ============================================================================
 // QUERY PARAMS
@@ -65,110 +72,72 @@ export type ChequeListItemDto = ChequeDetailDto;
 
 /**
  * List Cheques Query Parameters
- * Backend: ListChequesQuery
+ * Backend: ListChequesQuery — Status/Type/Direction STRING enum adı bekliyor (yukarıki nota bkz).
  */
 export interface ListChequesQuery {
-  pageNumber?: number;
+  page?: number;
   pageSize?: number;
-  sort?: string;                    // "dueDateUtc:asc", "amount:desc"
-  branchId?: number | null;
-  type?: ChequeType | null;
-  direction?: ChequeDirection | null;
-  status?: ChequeStatus | null;
-  dueDateFromUtc?: string | null;   // ISO-8601 UTC
-  dueDateToUtc?: string | null;     // ISO-8601 UTC
+  status?: ChequeStatusStr | null;
+  type?: ChequeTypeStr | null;
+  direction?: ChequeDirectionStr | null;
 }
 
 // ============================================================================
-// COMMAND BODIES - WRITE (CREATE/UPDATE)
+// COMMAND BODIES - WRITE
 // ============================================================================
 
 /**
  * Create Cheque Body
- * Backend: CreateChequeCommand
+ * Backend: CreateChequeCommand — NO branchId (ICurrentUserService'ten türetiliyor),
+ * NO status (her zaman Pending başlar). ContactId sadece Inbound için zorunlu.
  */
 export interface CreateChequeBody {
-  branchId: number;
-  chequeNumber: string;
+  contactId?: number | null;
   type: ChequeType;
   direction: ChequeDirection;
-  amount: string;                   // Money string (dot separator!)
-  dueDateUtc: string;               // ISO-8601 UTC
-  drawerName?: string | null;
+  chequeNumber: string;
+  issueDate: string;                // ISO-8601 UTC
+  dueDate: string;                  // ISO-8601 UTC
+  amount: string;                   // Money string
+  currency: string;
   bankName?: string | null;
-  contactId?: number | null;        // İlişkili cari
+  bankBranch?: string | null;
+  accountNumber?: string | null;
+  drawerName?: string | null;
+  description?: string | null;
 }
 
 /**
- * Update Cheque Body
- * Backend: UpdateChequeCommand
+ * Update Cheque Status Body
+ * Backend: UpdateStatusRequest (ChequesController) — RowVersionBase64 alan adı budur
+ * (delete'teki "rowVersion"dan farklı). CashBankAccountId sadece Paid'e geçişte zorunlu.
  */
-export interface UpdateChequeBody {
-  id: number;
-  rowVersionBase64: string;         // Required for optimistic concurrency
-  branchId: number;
-  chequeNumber: string;
-  type: ChequeType;
-  direction: ChequeDirection;
-  amount: string;                   // Money string (dot separator!)
-  dueDateUtc: string;               // ISO-8601 UTC
-  drawerName?: string | null;
-  bankName?: string | null;
-  status: ChequeStatus;
-}
-
-/**
- * Endorse Cheque Body
- * Backend: EndorseChequeCommand
- */
-export interface EndorseChequeBody {
-  chequeId: number;
-  endorseeContactId: number;        // Ciro edilen kişi/firma
-  endorsementDateUtc: string;       // ISO-8601 UTC
+export interface UpdateChequeStatusBody {
+  newStatus: ChequeStatus;
+  rowVersionBase64: string;
+  transactionDate?: string | null;
+  cashBankAccountId?: number | null;
 }
 
 // ============================================================================
 // HELPER TYPES
 // ============================================================================
 
-/**
- * Get cheque type display name (Turkish)
- */
-export function getChequeTypeDisplayName(type: string): string {
+export function getChequeTypeDisplayName(type: ChequeTypeStr | string): string {
   return type === 'PromissoryNote' ? 'Senet' : 'Çek';
 }
 
-/**
- * Get cheque direction display name (Turkish)
- */
-export function getChequeDirectionDisplayName(direction: string): string {
-  return direction === 'Inbound' ? 'Gelen' : 'Giden';
+export function getChequeDirectionDisplayName(direction: ChequeDirectionStr | string): string {
+  return direction === 'Outbound' ? 'Verilen' : 'Alınan';
 }
 
-/**
- * Get cheque status display name (Turkish)
- */
-export function getChequeStatusDisplayName(status: string): string {
+export function getChequeStatusDisplayName(status: ChequeStatusStr | string): string {
   const names: Record<string, string> = {
-    'Pending': 'Beklemede',
-    'Paid': 'Ödendi',
-    'Endorsed': 'Ciro Edildi',
-    'Bounced': 'Karşılıksız',
-    'Cancelled': 'İptal'
+    Pending: 'Portföyde',
+    Paid: 'Tahsil/Ödendi',
+    Endorsed: 'Ciro Edildi',
+    Bounced: 'Karşılıksız',
+    Cancelled: 'İptal'
   };
-  return names[status] || 'Bilinmeyen';
-}
-
-/**
- * Get cheque status color
- */
-export function getChequeStatusColor(status: string): string {
-  const colors: Record<string, string> = {
-    'Pending': '#FF9800',     // Orange
-    'Paid': '#4CAF50',        // Green
-    'Endorsed': '#2196F3',    // Blue
-    'Bounced': '#F44336',     // Red
-    'Cancelled': '#9E9E9E'    // Gray
-  };
-  return colors[status] || '#9E9E9E';
+  return names[status] ?? 'Bilinmeyen';
 }

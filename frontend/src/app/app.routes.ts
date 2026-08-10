@@ -48,6 +48,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/categories/categories-page.component').then(m => m.CategoriesPageComponent)
   },
   {
+    path: 'cheques',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/cheques/cheques-page.component').then(m => m.ChequesPageComponent)
+  },
+  {
     path: 'company-settings',
     canActivate: [authGuard],
     loadComponent: () => import('./features/company-settings/company-settings-page.component').then(m => m.CompanySettingsPageComponent)

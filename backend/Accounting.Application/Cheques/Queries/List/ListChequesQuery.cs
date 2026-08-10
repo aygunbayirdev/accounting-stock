@@ -8,5 +8,6 @@ public record ListChequesQuery(
     int Page = 1,
     int PageSize = 20,
     string? Status = null,
-    string? Type = null
+    string? Type = null,
+    string? Direction = null
 ) : IRequest<PagedResult<ChequeDetailDto>>;

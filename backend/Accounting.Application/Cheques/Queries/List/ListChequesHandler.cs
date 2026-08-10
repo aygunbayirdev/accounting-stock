@@ -4,6 +4,7 @@ using Accounting.Application.Common.Constants;
 using Accounting.Application.Common.Extensions;
 using Accounting.Application.Common.Interfaces;
 using Accounting.Application.Common.Models;
+using Accounting.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,11 +31,17 @@ public class ListChequesHandler : IRequestHandler<ListChequesQuery, PagedResult<
             .ApplyBranchFilter(_currentUserService);
 
         // Filters
-        if (!string.IsNullOrWhiteSpace(request.Status))
-            query = query.Where(c => c.Status.ToString() == request.Status);
+        // NOT: EF Core enum.ToString() == parametre karşılaştırmasını SQL'e çeviremiyor
+        // ("could not be translated" InvalidOperationException) — string'i önce enum'a
+        // parse edip enum == enum olarak karşılaştırmak gerekiyor.
+        if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse<ChequeStatus>(request.Status, out var statusFilter))
+            query = query.Where(c => c.Status == statusFilter);
 
-        if (!string.IsNullOrWhiteSpace(request.Type))
-            query = query.Where(c => c.Type.ToString() == request.Type);
+        if (!string.IsNullOrWhiteSpace(request.Type) && Enum.TryParse<ChequeType>(request.Type, out var typeFilter))
+            query = query.Where(c => c.Type == typeFilter);
+
+        if (!string.IsNullOrWhiteSpace(request.Direction) && Enum.TryParse<ChequeDirection>(request.Direction, out var directionFilter))
+            query = query.Where(c => c.Direction == directionFilter);
 
         var total = await query.CountAsync(ct);
 
@@ -47,10 +54,16 @@ public class ListChequesHandler : IRequestHandler<ListChequesQuery, PagedResult<
                 c.BranchId,
                 c.ChequeNumber,
                 c.Type.ToString(),
+                c.Direction.ToString(),
                 c.Amount,
+                c.Currency,
+                c.IssueDate,
                 c.DueDate,
+                c.ContactId,
+                c.Contact != null ? c.Contact.Name : null,
                 c.DrawerName,
                 c.BankName,
+                c.Description,
                 c.Status.ToString(),
                 c.CreatedAtUtc,
                 c.UpdatedAtUtc,
