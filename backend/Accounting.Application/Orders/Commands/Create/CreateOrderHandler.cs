@@ -100,6 +100,7 @@ public class CreateOrderHandler(IAppDbContext db, ICurrentUserService currentUse
             order.ContactId,
             "", // Contact name - could be fetched if needed
             order.DateUtc,
+            order.Type,
             order.Status,
             order.TotalNet,
             order.TotalVat,

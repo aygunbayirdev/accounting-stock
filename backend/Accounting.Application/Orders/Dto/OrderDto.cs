@@ -11,6 +11,7 @@ public record OrderDetailDto(
     int ContactId,
     string ContactName,
     DateTime DateUtc,
+    InvoiceType Type,
     OrderStatus Status,
 
     [property: JsonConverter(typeof(AmountJsonConverter))]
@@ -37,6 +38,7 @@ public record OrderListItemDto(
     int ContactId,
     string ContactName,
     DateTime DateUtc,
+    InvoiceType Type,
     OrderStatus Status,
 
     [property: JsonConverter(typeof(AmountJsonConverter))]

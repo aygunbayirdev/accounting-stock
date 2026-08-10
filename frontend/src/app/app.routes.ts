@@ -101,6 +101,31 @@ export const routes: Routes = [
     loadComponent: () => import('./features/invoices/invoices-page.component').then(m => m.InvoicesPageComponent) 
   },
 
+  // ---- Orders (özeller önce) ----
+  {
+    path: 'orders/new',
+    canActivate: [authGuard],
+    data: { mode: 'insert' },
+    loadComponent: () => import('./features/orders/order-edit.page').then(m => m.OrderEditPage)
+  },
+  {
+    path: 'orders/:id/edit',
+    canActivate: [authGuard],
+    data: { mode: 'edit' },
+    loadComponent: () => import('./features/orders/order-edit.page').then(m => m.OrderEditPage)
+  },
+  {
+    path: 'orders/:id',
+    canActivate: [authGuard],
+    data: { mode: 'view' },
+    loadComponent: () => import('./features/orders/order-edit.page').then(m => m.OrderEditPage)
+  },
+  {
+    path: 'orders',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/orders/orders-page.component').then(m => m.OrdersPageComponent)
+  },
+
   // Redirect unknown routes
   { path: '**', redirectTo: 'login' }
 ];

@@ -1,6 +1,6 @@
 /**
  * Order Models (Siparişler/Teklifler)
- * 
+ *
  * Backend DTO'larıyla senkronize.
  * @see Accounting.Application.Orders.Dto.OrderDto
  */
@@ -16,7 +16,16 @@ export enum OrderStatus {
   Cancelled = 9     // İptal edildi
 }
 
-export type OrderStatusStr = 'Draft' | 'Approved' | 'Invoiced' | 'Cancelled';
+/**
+ * Order Type — backend reuses InvoiceType (Accounting.Domain.Enums.InvoiceType)
+ * for Order.Type ("Reusing InvoiceType is fine as per plan" per entity comment).
+ */
+export enum OrderType {
+  Sales = 1,
+  Purchase = 2,
+  SalesReturn = 3,
+  PurchaseReturn = 4
+}
 
 // ============================================================================
 // DTOs - READ (GET/LIST)
@@ -38,16 +47,17 @@ export interface OrderLineDto {
 }
 
 /**
- * Order DTO (Read)
- * Backend: OrderDto
+ * Order Detail DTO (Read)
+ * Backend: OrderDetailDto
  */
-export interface OrderDto {
+export interface OrderDetailDto {
   id: number;
   branchId: number;
   orderNumber: string;
   contactId: number;
   contactName: string;
   dateUtc: string;                  // ISO-8601 UTC
+  type: OrderType;
   status: OrderStatus;
   totalNet: string;                 // F2 - Money string
   totalVat: string;                 // F2 - Money string
@@ -55,12 +65,15 @@ export interface OrderDto {
   currency: string;
   description?: string | null;
   lines: OrderLineDto[];
-  createdAtUtc: string;             // ISO-8601 UTC
   rowVersion: string;               // Base64
+  createdAtUtc: string;             // ISO-8601 UTC
+  updatedAtUtc?: string | null;
 }
 
 /**
- * Order List Item DTO
+ * Order List Item DTO (Read)
+ * Backend: OrderListItemDto — NOT the same as OrderDetailDto, has no Lines/RowVersion.
+ * Fetch OrderDetailDto via getById() before edit.
  */
 export interface OrderListItemDto {
   id: number;
@@ -69,10 +82,15 @@ export interface OrderListItemDto {
   contactId: number;
   contactName: string;
   dateUtc: string;                  // ISO-8601 UTC
+  type: OrderType;
   status: OrderStatus;
+  totalNet: string;                 // F2 - Money string
+  totalVat: string;                 // F2 - Money string
   totalGross: string;               // F2 - Money string
   currency: string;
+  description?: string | null;
   createdAtUtc: string;             // ISO-8601 UTC
+  updatedAtUtc?: string | null;
 }
 
 // ============================================================================
@@ -81,17 +99,14 @@ export interface OrderListItemDto {
 
 /**
  * List Orders Query Parameters
- * Backend: ListOrdersQuery
+ * Backend: ListOrdersQuery — no Sort, no date-range filters, page field is `Page`.
  */
 export interface ListOrdersQuery {
-  pageNumber?: number;
+  page?: number;
   pageSize?: number;
-  sort?: string;                    // "dateUtc:desc", "totalGross:asc"
   branchId?: number | null;
   contactId?: number | null;
   status?: OrderStatus | null;
-  dateFromUtc?: string | null;      // ISO-8601 UTC
-  dateToUtc?: string | null;        // ISO-8601 UTC
 }
 
 // ============================================================================
@@ -100,9 +115,9 @@ export interface ListOrdersQuery {
 
 /**
  * Create Order Line Body
+ * Backend: CreateOrderLineDto — no Id (backend never needs one for new lines).
  */
 export interface CreateOrderLineBody {
-  id: 0;                            // Always 0 for new
   itemId?: number | null;
   description: string;
   quantity: string;                 // Money string (dot separator!)
@@ -112,9 +127,10 @@ export interface CreateOrderLineBody {
 
 /**
  * Update Order Line Body
+ * Backend: UpdateOrderLineDto — id is nullable: null = new line, otherwise existing line id.
  */
 export interface UpdateOrderLineBody {
-  id: number;                       // Existing line ID or 0 for new
+  id: number | null;
   itemId?: number | null;
   description: string;
   quantity: string;                 // Money string (dot separator!)
@@ -124,14 +140,13 @@ export interface UpdateOrderLineBody {
 
 /**
  * Create Order Body
- * Backend: CreateOrderCommand
+ * Backend: CreateOrderCommand — NO branchId (derived from current user), NO orderNumber
+ * (auto-generated server-side, e.g. "SO-2026-0001"), NO status (always starts Draft).
  */
 export interface CreateOrderBody {
-  branchId: number;
-  orderNumber: string;
   contactId: number;
   dateUtc: string;                  // ISO-8601 UTC
-  status: OrderStatus;
+  type: OrderType;
   currency: string;
   description?: string | null;
   lines: CreateOrderLineBody[];
@@ -139,17 +154,15 @@ export interface CreateOrderBody {
 
 /**
  * Update Order Body
- * Backend: UpdateOrderCommand
+ * Backend: UpdateOrderCommand — only Draft orders are updatable; NO branchId, NO
+ * orderNumber, NO status (status changes go through Approve/Cancel), NO type/currency
+ * (immutable after creation).
  */
 export interface UpdateOrderBody {
   id: number;
-  rowVersionBase64: string;         // Required for optimistic concurrency
-  branchId: number;
-  orderNumber: string;
+  rowVersion: string;               // Base64 — field name is RowVersion, not rowVersionBase64
   contactId: number;
   dateUtc: string;                  // ISO-8601 UTC
-  status: OrderStatus;
-  currency: string;
   description?: string | null;
   lines: UpdateOrderLineBody[];
 }
@@ -182,4 +195,17 @@ export function getOrderStatusColor(status: OrderStatus): string {
     [OrderStatus.Cancelled]: '#F44336'    // Red
   };
   return colors[status] || '#9E9E9E';
+}
+
+/**
+ * Get order type display name (Turkish)
+ */
+export function getOrderTypeDisplayName(type: OrderType): string {
+  const names: Record<OrderType, string> = {
+    [OrderType.Sales]: 'Satış',
+    [OrderType.Purchase]: 'Alış',
+    [OrderType.SalesReturn]: 'Satış İadesi',
+    [OrderType.PurchaseReturn]: 'Alış İadesi'
+  };
+  return names[type] || 'Bilinmeyen';
 }

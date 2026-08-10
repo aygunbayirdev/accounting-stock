@@ -8,7 +8,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
-  OrderDto,
+  OrderDetailDto,
   OrderListItemDto,
   ListOrdersQuery,
   CreateOrderBody,
@@ -24,15 +24,15 @@ export class OrdersService {
   /**
    * POST /api/orders
    */
-  create(body: CreateOrderBody): Observable<OrderDto> {
-    return this.http.post<OrderDto>(this.baseUrl, body);
+  create(body: CreateOrderBody): Observable<OrderDetailDto> {
+    return this.http.post<OrderDetailDto>(this.baseUrl, body);
   }
 
   /**
    * GET /api/orders/{id}
    */
-  getById(id: number): Observable<OrderDto> {
-    return this.http.get<OrderDto>(`${this.baseUrl}/${id}`);
+  getById(id: number): Observable<OrderDetailDto> {
+    return this.http.get<OrderDetailDto>(`${this.baseUrl}/${id}`);
   }
 
   /**
@@ -43,19 +43,16 @@ export class OrdersService {
     if (query.branchId != null) params = params.set('branchId', query.branchId.toString());
     if (query.contactId != null) params = params.set('contactId', query.contactId.toString());
     if (query.status != null) params = params.set('status', query.status.toString());
-    if (query.dateFromUtc) params = params.set('dateFromUtc', query.dateFromUtc);
-    if (query.dateToUtc) params = params.set('dateToUtc', query.dateToUtc);
-    if (query.pageNumber) params = params.set('page', query.pageNumber.toString());
+    if (query.page) params = params.set('page', query.page.toString());
     if (query.pageSize) params = params.set('pageSize', query.pageSize.toString());
-    if (query.sort) params = params.set('sort', query.sort);
     return this.http.get<PagedResult<OrderListItemDto>>(this.baseUrl, { params });
   }
 
   /**
    * PUT /api/orders/{id}
    */
-  update(id: number, body: UpdateOrderBody): Observable<OrderDto> {
-    return this.http.put<OrderDto>(`${this.baseUrl}/${id}`, body);
+  update(id: number, body: UpdateOrderBody): Observable<OrderDetailDto> {
+    return this.http.put<OrderDetailDto>(`${this.baseUrl}/${id}`, body);
   }
 
   /**
@@ -100,8 +97,6 @@ export class OrdersService {
     if (query.branchId != null) params = params.set('branchId', query.branchId.toString());
     if (query.contactId != null) params = params.set('contactId', query.contactId.toString());
     if (query.status != null) params = params.set('status', query.status.toString());
-    if (query.dateFromUtc) params = params.set('dateFromUtc', query.dateFromUtc);
-    if (query.dateToUtc) params = params.set('dateToUtc', query.dateToUtc);
     return this.http.get(`${this.baseUrl}/export`, { params, responseType: 'blob' });
   }
 }

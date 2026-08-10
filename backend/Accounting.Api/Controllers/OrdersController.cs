@@ -12,7 +12,10 @@ using Accounting.Application.Orders.Queries.GetById;
 using Accounting.Application.Orders.Queries.List;
 using Accounting.Domain.Enums;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
+using Accounting.Domain.Constants;
 
 namespace Accounting.Api.Controllers;
 
@@ -21,6 +24,7 @@ namespace Accounting.Api.Controllers;
 public class OrdersController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
+    [Authorize(Policy = Permissions.Order.Read)]
     public async Task<ActionResult<PagedResult<OrderListItemDto>>> GetList(
         [FromQuery] int? branchId,
         [FromQuery] int? contactId,
@@ -34,12 +38,14 @@ public class OrdersController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Policy = Permissions.Order.Read)]
     public async Task<ActionResult<OrderDetailDto>> GetById(int id, CancellationToken ct)
     {
         return Ok(await mediator.Send(new GetOrderByIdQuery(id), ct));
     }
 
     [HttpPost]
+    [Authorize(Policy = Permissions.Order.Create)]
     public async Task<ActionResult<OrderDetailDto>> Create(CreateOrderCommand command, CancellationToken ct)
     {
         var result = await mediator.Send(command, ct);
@@ -47,6 +53,7 @@ public class OrdersController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Policy = Permissions.Order.Update)]
     public async Task<ActionResult<OrderDetailDto>> Update(int id, UpdateOrderCommand command, CancellationToken ct)
     {
         if (id != command.Id) return BadRequest("ID mismatch");
@@ -54,29 +61,34 @@ public class OrdersController(IMediator mediator) : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = Permissions.Order.Delete)]
     public async Task<ActionResult<bool>> Delete(int id, [FromQuery] string rowVersion, CancellationToken ct)
     {
         return Ok(await mediator.Send(new DeleteOrderCommand(id, rowVersion), ct));
     }
 
     [HttpPut("{id}/approve")]
+    [Authorize(Policy = Permissions.Order.Approve)]
     public async Task<ActionResult<bool>> Approve(int id, [FromQuery] string rowVersion, CancellationToken ct)
     {
         return Ok(await mediator.Send(new ApproveOrderCommand(id, Convert.FromBase64String(rowVersion ?? "")), ct));
     }
 
     [HttpPut("{id}/cancel")]
+    [Authorize(Policy = Permissions.Order.Cancel)]
     public async Task<ActionResult<bool>> Cancel(int id, [FromQuery] string rowVersion, CancellationToken ct)
     {
         return Ok(await mediator.Send(new CancelOrderCommand(id, rowVersion), ct));
     }
 
     [HttpPost("{id}/create-invoice")]
+    [Authorize(Policy = Permissions.Order.CreateInvoice)]
     public async Task<ActionResult<int>> CreateInvoice(int id, CancellationToken ct)
     {
         return Ok(await mediator.Send(new CreateInvoiceFromOrderCommand(id), ct));
     }
     [HttpGet("export")]
+    [Authorize(Policy = Permissions.Order.Read)]
     public async Task<IActionResult> Export(
         [FromServices] IExcelService excelService,
         [FromQuery] int? branchId,

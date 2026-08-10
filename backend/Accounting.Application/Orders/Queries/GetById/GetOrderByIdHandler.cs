@@ -39,6 +39,7 @@ public class GetOrderByIdHandler : IRequestHandler<GetOrderByIdQuery, OrderDetai
             order.ContactId,
             order.Contact.Name,
             order.DateUtc,
+            order.Type,
             order.Status,
             order.TotalNet,
             order.TotalVat,

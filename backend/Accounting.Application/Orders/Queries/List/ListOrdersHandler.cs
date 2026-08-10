@@ -57,6 +57,7 @@ public class ListOrdersHandler : IRequestHandler<ListOrdersQuery, PagedResult<Or
             o.ContactId,
             o.Contact.Name,
             o.DateUtc,
+            o.Type,
             o.Status,
             o.TotalNet,
             o.TotalVat,

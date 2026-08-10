@@ -114,6 +114,7 @@ public class UpdateOrderHandler : IRequestHandler<UpdateOrderCommand, OrderDetai
             order.ContactId,
             order.Contact.Name,
             order.DateUtc,
+            order.Type,
             order.Status,
             order.TotalNet,
             order.TotalVat,
