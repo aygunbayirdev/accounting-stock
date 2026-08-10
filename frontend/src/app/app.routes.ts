@@ -10,10 +10,15 @@ export const routes: Routes = [
   },
 
   // Protected routes (authenticated users only)
-  { path: '', pathMatch: 'full', redirectTo: 'invoices' },
+  { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
 
-  { 
-    path: 'payments', 
+  {
+    path: 'dashboard',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/dashboard/dashboard-page.component').then(m => m.DashboardPageComponent)
+  },
+  {
+    path: 'payments',
     canActivate: [authGuard],
     loadComponent: () => import('./features/payments/payments-page.component').then(m => m.PaymentsPageComponent) 
   },
