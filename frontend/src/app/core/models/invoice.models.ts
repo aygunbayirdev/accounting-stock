@@ -20,6 +20,18 @@ export enum InvoiceType {
 
 export type InvoiceTypeStr = 'Sales' | 'Purchase' | 'SalesReturn' | 'PurchaseReturn';
 
+export enum DocumentType {
+  Invoice = 1,
+  RetailReceipt = 2,
+  ExpenseNote = 3
+}
+
+export const DocumentTypeNames: Record<DocumentType, string> = {
+  [DocumentType.Invoice]: 'Fatura',
+  [DocumentType.RetailReceipt]: 'Perakende Satış Fişi',
+  [DocumentType.ExpenseNote]: 'Gider Pusulası'
+};
+
 export enum InvoiceTypeFilter {
   Any = 0,
   Sales = 1,
@@ -169,6 +181,7 @@ export interface CreateInvoiceCommand {
   currency: string;                   // "TRY", "USD", "EUR"
   lines: CreateInvoiceLineDto[];
   type: number;                       // InvoiceType enum (1-4)
+  documentType: number | null;        // DocumentType enum (1=Invoice, 2=RetailReceipt, 3=ExpenseNote)
   waybillNumber: string | null;
   waybillDateUtc: string | null;      // ISO-8601 UTC
   paymentDueDateUtc: string | null;   // ISO-8601 UTC
@@ -212,6 +225,7 @@ export interface UpdateInvoiceCommand {
   currency: string;                   // "TRY", "USD", "EUR"
   contactId: number;
   type: number;                       // InvoiceType enum (1-4)
+  documentType: number | null;        // DocumentType enum (1=Invoice, 2=RetailReceipt, 3=ExpenseNote)
   waybillNumber: string | null;
   waybillDateUtc: string | null;      // ISO-8601 UTC
   paymentDueDateUtc: string | null;   // ISO-8601 UTC

@@ -38,7 +38,6 @@ export class InvoicesEditPage {
     if (!idParam) {
       this.mode = 'insert';
       this.formValue = {
-        branchId: null,                                          // NEW (elle gireceksin)
         contactId: null,
         dateUtc: new Date().toISOString(),
         currency: 'TRY',
@@ -57,11 +56,18 @@ export class InvoicesEditPage {
         this.formValue = {
           id: dto.id,
           rowVersionBase64: dto.rowVersion,
-          branchId: dto.branchId,                                // NEW
+          branchId: dto.branchId,
+          branchCode: dto.branchCode,
+          branchName: dto.branchName,
           contactId: dto.contactId,
+          contactCode: dto.contactCode,
+          contactName: dto.contactName,
           dateUtc: dto.dateUtc,
           currency: dto.currency,
           type: dto.type as any,
+          waybillNumber: dto.waybillNumber,
+          waybillDateUtc: dto.waybillDateUtc,
+          paymentDueDateUtc: dto.paymentDueDateUtc,
           lines: dto.lines.map(l => ({
             id: l.id,
             itemId: l.itemId ?? null,  // undefined → null dönüşümü
@@ -71,7 +77,9 @@ export class InvoicesEditPage {
             qty: l.qty,
             unitPrice: l.unitPrice,
             vatRate: l.vatRate,
-            net: l.net, vat: l.vat, gross: l.gross
+            discountRate: l.discountRate,
+            withholdingRate: l.withholdingRate,
+            net: l.net, vat: l.vat, grandTotal: l.grandTotal
           }))
         };
 
@@ -81,7 +89,9 @@ export class InvoicesEditPage {
   }
 
   handleInsert(body: any) {
-    // body branchId'yi already içeriyor (formdan geliyor)
+    // BranchId body'de yok — backend her zaman çağıranın kendi şubesini kullanıyor
+    // (CreateInvoiceCommand'da BranchId alanı hiç yok, CreateInvoiceHandler
+    // ICurrentUserService.BranchId'yi kullanıyor).
     this.svc.create(body).subscribe({
       next: res => {
         this.snack.open('Fatura oluşturuldu.', 'Kapat', { duration: 2000 });
@@ -101,15 +111,23 @@ export class InvoicesEditPage {
         this.formValue = {
           id: dto.id,
           rowVersionBase64: dto.rowVersion,
-          branchId: dto.branchId,                                // NEW
+          branchId: dto.branchId,
+          branchCode: dto.branchCode,
+          branchName: dto.branchName,
           contactId: dto.contactId,
+          contactCode: dto.contactCode,
+          contactName: dto.contactName,
           dateUtc: dto.dateUtc,
           currency: dto.currency,
           type: dto.type as any,
+          waybillNumber: dto.waybillNumber,
+          waybillDateUtc: dto.waybillDateUtc,
+          paymentDueDateUtc: dto.paymentDueDateUtc,
           lines: dto.lines.map(l => ({
             id: l.id, itemId: l.itemId ?? null, itemCode: l.itemCode, itemName: l.itemName, unit: l.unit,  // undefined → null
             qty: l.qty, unitPrice: l.unitPrice, vatRate: l.vatRate,
-            net: l.net, vat: l.vat, gross: l.gross
+            discountRate: l.discountRate, withholdingRate: l.withholdingRate,
+            net: l.net, vat: l.vat, grandTotal: l.grandTotal
           }))
         };
       },

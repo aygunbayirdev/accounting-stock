@@ -171,63 +171,46 @@ export function calculateWithholding(
 
 /**
  * Fatura satırı hesaplama (Tam workflow)
- * 
- * Net = (Qty × UnitPrice) - Discount
- * VAT = Net × (VatRate / 100)
- * Withholding = VAT × (WithholdingRate / 100)
- * Gross = Net + VAT
- * GrandTotal = Gross - Withholding
- * 
+ *
+ * Backend `InvoiceLineCalculator.Calculate` ile birebir aynı (Accounting.Application/Services/InvoiceLineCalculator.cs) —
+ * bu iki taraf sessizce birbirinden sapmasın diye buradaki adlandırma ve sıralama bilinçli olarak backend'e uyuyor,
+ * "gross" burada "net+vat" değil, backend'deki gibi qty×unitPrice (iskonto ÖNCESİ ham tutar) anlamına geliyor.
+ *
+ * Gross = Qty × UnitPrice
+ * DiscountAmount = Gross × (DiscountRate / 100)
+ * Net = Gross - DiscountAmount
+ * Vat = Net × (VatRate / 100)
+ * WithholdingAmount = Vat × (WithholdingRate / 100)
+ * GrandTotal = Net + Vat  (tevkifat GrandTotal'dan düşülmüyor — backend de düşmüyor)
+ *
  * @returns Hesaplanmış değerler
  */
 export function calculateInvoiceLine(params: {
   qty: string | number;
   unitPrice: string | number;
   vatRate: number;
-  discountRate?: number;
-  discountAmount?: string | number;
-  withholdingRate?: number;
+  discountRate?: number | string | null;
+  withholdingRate?: number | string | null;
 }) {
   const qty = new Decimal(normalizeMoneyInput(params.qty));
   const unitPrice = new Decimal(normalizeMoneyInput(params.unitPrice));
-  const vatRate = new Decimal(params.vatRate);
-  const discountRate = params.discountRate ? new Decimal(params.discountRate) : new Decimal(0);
-  const discountAmount = params.discountAmount
-    ? new Decimal(normalizeMoneyInput(params.discountAmount))
-    : new Decimal(0);
-  const withholdingRate = params.withholdingRate ? new Decimal(params.withholdingRate) : new Decimal(0);
+  const vatRate = new Decimal(params.vatRate || 0);
+  const discountRate = new Decimal(normalizeMoneyInput(params.discountRate ?? 0));
+  const withholdingRate = new Decimal(params.withholdingRate ?? 0);
 
-  // Line Gross = Qty × UnitPrice
-  const lineGross = qty.times(unitPrice);
-
-  // Discount
-  let discount = discountAmount;
-  if (discount.isZero() && !discountRate.isZero()) {
-    discount = lineGross.times(discountRate).div(100);
-  }
-
-  // Net = LineGross - Discount
-  const net = lineGross.minus(discount);
-
-  // VAT = Net × (VatRate / 100)
+  const gross = qty.times(unitPrice);
+  const discountAmount = gross.times(discountRate).div(100);
+  const net = gross.minus(discountAmount);
   const vat = net.times(vatRate).div(100);
-
-  // Withholding = VAT × (WithholdingRate / 100)
-  const withholding = vat.times(withholdingRate).div(100);
-
-  // Gross = Net + VAT
-  const gross = net.plus(vat);
-
-  // GrandTotal = Gross - Withholding
-  const grandTotal = gross.minus(withholding);
+  const withholdingAmount = vat.times(withholdingRate).div(100);
+  const grandTotal = net.plus(vat);
 
   return {
-    lineGross: formatMoneyString(lineGross, 2),
-    discount: formatMoneyString(discount, 2),
+    gross: formatMoneyString(gross, 2),
+    discountAmount: formatMoneyString(discountAmount, 2),
     net: formatMoneyString(net, 2),
     vat: formatMoneyString(vat, 2),
-    withholding: formatMoneyString(withholding, 2),
-    gross: formatMoneyString(gross, 2),
+    withholdingAmount: formatMoneyString(withholdingAmount, 2),
     grandTotal: formatMoneyString(grandTotal, 2),
   };
 }
