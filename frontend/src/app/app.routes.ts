@@ -22,10 +22,25 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/items/items-page.component').then(m => m.ItemsPageComponent) 
   },
-  { 
-    path: 'fixed-assets', 
+  {
+    path: 'fixed-assets',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/fixed-assets/fixed-assets-page.component').then(m => m.FixedAssetsPageComponent) 
+    loadComponent: () => import('./features/fixed-assets/fixed-assets-page.component').then(m => m.FixedAssetsPageComponent)
+  },
+  {
+    path: 'contacts',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/contacts/contacts-page.component').then(m => m.ContactsPageComponent)
+  },
+  {
+    path: 'branches',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/branches/branches-page.component').then(m => m.BranchesPageComponent)
+  },
+  {
+    path: 'warehouses',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/warehouses/warehouses-page.component').then(m => m.WarehousesPageComponent)
   },
 
   // ---- Invoices (özeller önce) ----

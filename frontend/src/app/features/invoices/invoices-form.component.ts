@@ -154,6 +154,7 @@ type LineRow = {
         [columnDefs]="colDefs"
         [defaultColDef]="defaultColDef"
         [getRowId]="getRowId"
+        [gridOptions]="lineGridOptions"
         (cellClicked)="onCellClicked($event)">
       </ag-grid-angular>
     </div>
@@ -184,6 +185,9 @@ type LineRow = {
 })
 export class InvoiceFormComponent {
   AG_THEME = AG_THEME;
+  // bkz. shared/list-grid/list-grid.component.ts'deki aynı isimli alanın yorumu:
+  // rAF'a ertelenen ilk-render cellRenderer oluşturmasını senkrona zorluyoruz (line-actions.cell).
+  lineGridOptions = { suppressAnimationFrame: true };
 
   @Input() mode: InvoiceMode = 'insert';
 

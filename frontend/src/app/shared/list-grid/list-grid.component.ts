@@ -30,6 +30,7 @@ export interface ListQuery { pageNumber?: number; pageSize?: number; sort?: stri
           [rowData]="rows()"
           [columnDefs]="columns"
           [gridOptions]="gridOptions"
+          [context]="context"
           (gridReady)="onGridReady($event)"
           (sortChanged)="onSortChanged()"
         ></ag-grid-angular>
@@ -66,6 +67,8 @@ export class ListGridComponent<T> implements OnInit {
   @Input({ required: true }) fetcher!: (q: ListQuery) => Observable<PagedResult<T>>;
   /** Sayfa boyutu opsiyonel */
   @Input() pageSizeInit = 25;
+  /** ag-grid cell renderer'ların (örn. entity-actions.cell) erişebileceği context (params.context) */
+  @Input() context: any = null;
 
   pageNumber = signal(1);
   pageSize = signal(this.pageSizeInit);
@@ -80,6 +83,11 @@ export class ListGridComponent<T> implements OnInit {
   gridOptions: GridOptions<T> = {
     defaultColDef: { resizable: true, filter: false, minWidth: 120 },
     animateRows: true,
+    // İlk render'da cellRenderer oluşturma requestAnimationFrame'e ertelenir; sekme arka planda/
+    // görünür olmayan bir sekmede ise (örn. headless/otomasyon ortamları) rAF hiç tetiklenmeyebilir
+    // ve framework cellRenderer'lar (entity-actions.cell, invoice-actions.cell, line-actions.cell)
+    // sonsuza kadar boş kalır. Senkron oluşturmaya zorluyoruz — bu ölçekteki listeler için maliyeti yok.
+    suppressAnimationFrame: true,
     columnTypes: {
       rightAligned: { cellClass: 'ag-right-aligned-cell' }
     }

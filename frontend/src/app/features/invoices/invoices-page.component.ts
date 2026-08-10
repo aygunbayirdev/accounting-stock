@@ -12,7 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { BranchDto } from '../../core/models/branch.models';
+import { BranchListItemDto } from '../../core/models/branch.models';
 import { BranchesService } from '../../core/services/branches.service';
 
 @Component({
@@ -79,7 +79,7 @@ import { BranchesService } from '../../core/services/branches.service';
 export class InvoicesPageComponent {
   sortWhitelist = ['dateUtc', 'totalNet', 'totalVat', 'totalGross', 'invoiceNumber'];
   branchId: number | null = null;
-  branches: BranchDto[] = [];
+  branches: BranchListItemDto[] = [];
 
   colDefs: ColDef<InvoiceListItemDto>[] = [
     // ID
@@ -146,7 +146,7 @@ export class InvoicesPageComponent {
     // Actions (pinned right)
     {
       headerName: '',
-      field: 'id',
+      colId: 'actions',
       width: 110,
       pinned: 'right',
       sortable: false,

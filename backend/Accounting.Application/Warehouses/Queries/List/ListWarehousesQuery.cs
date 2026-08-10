@@ -6,7 +6,7 @@ using MediatR;
 namespace Accounting.Application.Warehouses.Queries.List;
 
 public record ListWarehousesQuery(
-    int BranchId,
+    int? BranchId = null,
     string? Search = null,           // code/name
     int PageNumber = 1,
     int PageSize = PaginationConstants.DefaultPageSize,

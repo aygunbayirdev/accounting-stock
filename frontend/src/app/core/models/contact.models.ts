@@ -129,7 +129,7 @@ export interface CreateContactBody {
  */
 export interface UpdateContactBody {
   id: number;
-  rowVersionBase64: string;         // Required for optimistic concurrency
+  rowVersion: string;                // Required for optimistic concurrency (backend: UpdateContactCommand.RowVersion)
   branchId: number;
   code: string;
   name: string;

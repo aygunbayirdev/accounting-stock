@@ -87,14 +87,27 @@ Yeni ekran yazmadan önce mevcut kodun sağlam bir temel olduğundan emin ol.
 
 **Faz 3 durumu: hemen hemen tamamlandı** (son madde hariç, düşük öncelikli ve geniş kapsamlı olduğu için ertelendi). Doğrulama: `dotnet build`/`test` etkilenmedi (sadece frontend), `npx tsc --noEmit` (0 hata), `ng test --watch=false` (2/2), gerçek tarayıcı ile invoice new/edit/view akışları.
 
-## Faz 4 — Frontend: Temel Varlık Ekranları (diğer ekranların önkoşulu)
+## Faz 4 — Frontend: Temel Varlık Ekranları (diğer ekranların önkoşulu) ✅ TAMAMLANDI (2026-08-10)
 
 Fatura/sipariş formları şu an cari/şube ID'sini elle yazdırıyor — bu üç modül olmadan diğer ekranlar da tam olgunlaşamaz.
 
-- [ ] **Cariler (Contacts)** — liste + oluştur/düzenle/sil ekranı. Bu, invoice/order formlarındaki çıplak `contactId` sayı input'unun yerini alacak bir arama/autocomplete bileşeninin de önkoşulu.
-- [ ] **Şubeler (Branches)** — liste + oluştur/düzenle/sil ekranı (şu an sadece invoice listesinde dropdown olarak tüketiliyor, kendi yönetim ekranı yok).
-- [ ] **Depolar (Warehouses)** — liste + oluştur/düzenle/sil ekranı.
-- [ ] Paylaşılan bir **"entity picker" bileşeni** (autocomplete + arama, `ContactsService`/`BranchesService`/`ItemsService` ile parametrik çalışan) yaz — invoice formundaki çıplak ID input'larını bununla değiştireceğiz (Faz 5).
+- [x] **Cariler (Contacts)** — liste + filtre (arama, şube, tür) + oluştur/düzenle/sil dialog'u (`features/contacts/`). Şirket/Şahıs toggle'ı, tüm flag'ler (Müşteri/Tedarikçi/Personel/Perakende), IBAN/e-posta/telefon dahil.
+- [x] **Şubeler (Branches)** — liste + oluştur/düzenle/sil dialog'u (`features/branches/`).
+- [x] **Depolar (Warehouses)** — liste + şube filtresi + oluştur/düzenle/sil dialog'u (`features/warehouses/`), varsayılan depo toggle'ı dahil.
+- [x] Paylaşılan **`ConfirmDialogComponent`** (`shared/confirm-dialog/`) — tüm sil işlemlerinde kullanılan ortak onay dialog'u.
+- [x] Paylaşılan **`EntityPickerComponent`** (`shared/entity-picker/`) — autocomplete arama bileşeni yazıldı ve derleniyor, ancak henüz hiçbir ekrana bağlanmadı (şubeler az sayıda olduğu için Warehouses/Contacts formlarında basit `mat-select` kullanıldı). Gerçek kullanım alanı Faz 5'teki invoice formunun `contactId`/`itemId` alanları — orada dogfooding edilip doğrulanmalı.
+- [x] Paylaşılan **`EntityActionsCell`** (ag-grid cellRenderer, `shared/list-grid/`) — dialog tabanlı ekranlarda Düzenle/Sil ikonları için; `ListGridComponent`'e `context` Input'u eklendi.
+
+**Bu fazda canlı test sırasında bulunan ve düzeltilen kritik bug'lar:**
+- **AG Grid cellRenderer'lar hiçbir zaman render olmuyordu (uygulama genelinde, sadece yeni ekranlarda değil)** — kök neden: ilk render'daki cellRenderer oluşturma AG Grid tarafından `requestAnimationFrame`'e erteleniyor; bu otomasyon/headless ortamında (ve gerçek kullanıcıda sekme arka plandaysa) hiç tetiklenmeyebiliyor, hücre sonsuza kadar boş kalıyor. `gridOptions.suppressAnimationFrame: true` ile düzeltildi (`shared/list-grid/list-grid.component.ts` ve `invoices-form.component.ts`). Bu, faturalar listesindeki Görüntüle/Düzenle ikonlarının ve fatura satır grid'indeki Sil butonunun da bu oturumdan önce **hiç çalışmadığını** ortaya çıkardı — muhtemelen o ekranlar hep URL'e direkt gidilerek test edilmiş, ikonlara hiç tıklanmamış. Bonus olarak o da düzeltildi.
+- **Actions kolonları `field: 'id'`'i ID kolonuyla paylaşıyordu** — AG Grid'de aynı `field`'a sahip iki kolon tanımlandığında ikincinin `cellRenderer`'ı sessizce yok sayılıyor. Tüm actions kolonları artık `field` yerine benzersiz `colId: 'actions'` kullanıyor (branches/warehouses/contacts/invoices-page).
+- **`BranchDto`/`WarehouseDto`/`ContactDto` liste (list item) DTO'ları backend'de `RowVersion` içermiyor** (sadece detail DTO'lar içeriyor) — ama frontend tipleri (`BranchListItemDto = BranchDto` gibi) bunu varsayıyordu, düzenleme/silme `rowVersion: undefined` gönderip 400 alıyordu. Üç modülün `ListItemDto` tipleri gerçek backend şekline göre ayrıştırıldı; Branches/Warehouses/Contacts'ın edit/delete akışları artık `getById()` ile güncel veriyi çekip kullanıyor.
+- **`UpdateBranchBody`/`UpdateWarehouseBody`/`UpdateContactBody`'nin rowVersion alan adı backend'le uyuşmuyordu**: Branch için frontend `rowVersionBase64` diyordu ama backend `RowVersion` bekliyordu; Warehouse/Contact için ise tam tersi (frontend `rowVersionBase64`, backend `RowVersion`). Üçü de backend'in gerçek `UpdateXCommand` alan adına göre düzeltildi.
+- `ContactsService.list()` yanlış response tipi (`{totalCount, items}` yerine gerçek `PagedResult<T>` şekli `{total, items, ...}`) ve yanlış query param adı (`page` yerine `pageNumber`) kullanıyordu.
+- `WarehousesService`/`ContactsService`'in `page` query param'ı backend'in beklediği `pageNumber`'dan farklıydı.
+- `ListWarehousesQuery.BranchId` backend handler'da hiç kullanılmıyordu (ölü filtre) — şimdi `ApplyBranchFilter`'dan sonra ek `Where` ile gerçekten filtreliyor.
+
+**Bilinçli olarak ertelenen:** `EntityPickerComponent` henüz gerçek bir ekranda kullanılmıyor (yukarıda açıklandı) — Faz 5'te invoice formunun contact/item seçiminde dogfooding edilmeli.
 
 ## Faz 5 — Frontend: Mevcut Ekranların Tamamlanması
 

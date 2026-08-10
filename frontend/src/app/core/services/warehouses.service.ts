@@ -41,7 +41,7 @@ export class WarehousesService {
   list(query: ListWarehousesQuery = {}): Observable<PagedResult<WarehouseListItemDto>> {
     let params = new HttpParams();
     if (query.branchId != null) params = params.set('branchId', query.branchId.toString());
-    if (query.pageNumber) params = params.set('page', query.pageNumber.toString());
+    if (query.pageNumber) params = params.set('pageNumber', query.pageNumber.toString());
     if (query.pageSize) params = params.set('pageSize', query.pageSize.toString());
     if (query.sort) params = params.set('sort', query.sort);
     return this.http.get<PagedResult<WarehouseListItemDto>>(this.baseUrl, { params });

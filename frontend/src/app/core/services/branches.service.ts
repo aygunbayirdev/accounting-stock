@@ -9,6 +9,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   BranchDto,
+  BranchListItemDto,
   CreateBranchBody,
   UpdateBranchBody
 } from '../models/branch.models';
@@ -35,8 +36,8 @@ export class BranchesService {
   /**
    * GET /api/branches
    */
-  list(): Observable<BranchDto[]> {
-    return this.http.get<BranchDto[]>(this.baseUrl);
+  list(): Observable<BranchListItemDto[]> {
+    return this.http.get<BranchListItemDto[]>(this.baseUrl);
   }
 
   /**

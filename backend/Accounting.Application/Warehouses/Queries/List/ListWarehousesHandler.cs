@@ -25,6 +25,11 @@ public class ListWarehousesHandler : IRequestHandler<ListWarehousesQuery, PagedR
             .AsNoTracking()
             .ApplyBranchFilter(_currentUserService);
 
+        if (r.BranchId is int branchId)
+        {
+            q = q.Where(x => x.BranchId == branchId);
+        }
+
         if (!string.IsNullOrWhiteSpace(r.Search))
         {
             var s = r.Search.Trim().ToUpperInvariant();

@@ -17,13 +17,19 @@ export interface BranchDto {
   id: number;
   code: string;
   name: string;
-  rowVersionBase64: string;         // Base64
+  rowVersion: string;               // Base64 (backend: BranchDetailDto.RowVersion)
 }
 
 /**
- * Branch List Item (Same as detail)
+ * Branch List Item DTO (Read)
+ * Backend: BranchListItemDto — NOT the same as BranchDto, has no RowVersion.
+ * Fetch full BranchDto via getById() before edit/delete.
  */
-export type BranchListItemDto = BranchDto;
+export interface BranchListItemDto {
+  id: number;
+  code: string;
+  name: string;
+}
 
 // ============================================================================
 // QUERY PARAMS

@@ -25,9 +25,19 @@ export interface WarehouseDto {
 }
 
 /**
- * Warehouse List Item DTO (Same as detail for now)
+ * Warehouse List Item DTO (Read)
+ * Backend: WarehouseListItemDto — NOT the same as WarehouseDto, has no RowVersion.
+ * Fetch full WarehouseDto via getById() before edit/delete.
  */
-export type WarehouseListItemDto = WarehouseDto;
+export interface WarehouseListItemDto {
+  id: number;
+  branchId: number;
+  code: string;
+  name: string;
+  isDefault: boolean;
+  createdAtUtc: string;
+  updatedAtUtc?: string | null;
+}
 
 // ============================================================================
 // QUERY PARAMS
@@ -65,7 +75,7 @@ export interface CreateWarehouseBody {
  */
 export interface UpdateWarehouseBody {
   id: number;
-  rowVersionBase64: string;         // Required for optimistic concurrency
+  rowVersion: string;               // Required for optimistic concurrency (backend: UpdateWarehouseCommand.RowVersion)
   branchId: number;
   code: string;
   name: string;
