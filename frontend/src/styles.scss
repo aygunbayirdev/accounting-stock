@@ -7,13 +7,17 @@
 @use '@angular/material' as mat;
 
 html {
+  // density: -2 = kompakt UI (bkz. FRONTEND_RULES.md "Angular Material Design 3").
+  // Not: burada tek bir tema tanımı var — önceden aynı `html` seçicisine iki ayrı
+  // @include mat.theme(...) çağrısı yapılıyordu (biri density: 0, biri density: -2
+  // ile "override" ediyordu); ikincisi zaten kazanıyordu, ilki sadece ölü koddu.
   @include mat.theme((
     color: (
       primary: mat.$azure-palette,
       tertiary: mat.$blue-palette,
     ),
     typography: Roboto,
-    density: 0,
+    density: -2,
   ));
 }
 
@@ -40,20 +44,3 @@ body {
 .grid-host { height: 80vh; width: 100%; }
 ag-grid-angular { display: block; height: 100%; width: 100%; }
 /* Son: AG Grid teması */
-
-/* Angular Material Kompaktlık Ayarları */
-
-// 1) Kompaktlık seviyeni tanımla: 0 (varsayılan), -1, -2, -3 (en kompakt)
-html {
-  @include mat.theme((
-    color: (
-      primary: mat.$azure-palette,
-      tertiary: mat.$blue-palette,
-    ),
-    typography: Roboto,
-    density: -2, // ⬅️ 0 yerine -1/-2/-3 (en kompakt)
-  ));
-}
-
-
-/* Son: Angular Material Kompaktlık Ayarları */

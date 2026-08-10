@@ -13,15 +13,16 @@ import { AgGridAngular } from 'ag-grid-angular';
 import type {
   ColDef, GetRowIdParams, ValueParserParams, CellClickedEvent
 } from 'ag-grid-community';
-
-import Decimal from 'decimal.js';
+import { AG_THEME } from '../../core/ag-grid/ag-theme';
 
 import { LineActionsCell } from './line-actions.cell';
+// money.utils.ts, decimal.js'i backend'in MidpointRounding.AwayFromZero'suna eşdeğer
+// (precision 28, ROUND_HALF_UP) şekilde global olarak yapılandırıyor — modül import
+// edildiğinde bu ayar zaten uygulanıyor, burada tekrar Decimal.set() çağırmaya gerek yok.
+import { calculateInvoiceLine } from '../../core/utils/money.utils';
 
 export type InvoiceMode = 'insert' | 'update' | 'view';
 export type InvoiceTypeStr = 'Sales' | 'Purchase' | 'SalesReturn' | 'PurchaseReturn';
-
-Decimal.set({ precision: 28, rounding: Decimal.ROUND_HALF_UP }); // BE'de MidpointRounding.AwayFromZero eşdeğeri
 
 export interface EditLine {
   id?: number;
@@ -146,14 +147,13 @@ type LineRow = {
       </button>
     </div>
 
-    <div class="ag-theme-quartz lines-grid" style="height: 360px; width: 100%;">
+    <div class="lines-grid" style="height: 360px; width: 100%;">
       <ag-grid-angular
+        [theme]="AG_THEME"
         [rowData]="rowData"
         [columnDefs]="colDefs"
         [defaultColDef]="defaultColDef"
         [getRowId]="getRowId"
-        [rowHeight]="40"
-        [headerHeight]="42"
         (cellClicked)="onCellClicked($event)">
       </ag-grid-angular>
     </div>
@@ -183,6 +183,8 @@ type LineRow = {
   `]
 })
 export class InvoiceFormComponent {
+  AG_THEME = AG_THEME;
+
   @Input() mode: InvoiceMode = 'insert';
 
   private _id?: number;
@@ -421,29 +423,16 @@ export class InvoiceFormComponent {
   }
 
   private preview(row?: { qty?: number | string | null; unitPrice?: number | string | null; vatRate?: number | string | null }) {
-    // "1,23" gibi girişler için noktalı normalize
-    const norm = (v: unknown) => {
-      if (v === null || v === undefined) return "0";
-      return String(v).replace(",", ".").trim() || "0";
-    };
+    // İskonto/tevkifat bu formda henüz yok, o yüzden 0 varsayılıyor — bu durumda
+    // calculateInvoiceLine'ın net/vat/gross çıktısı tam olarak "Net = Qty×Fiyat,
+    // KDV = Net×oran/100, Brüt = Net+KDV" demek, aşağıdaki elle yazılmış Decimal
+    // hesabıyla birebir aynı (artık calculateInvoiceLine kullanıyoruz, kopya silindi).
+    const { net, vat, gross } = calculateInvoiceLine({
+      qty: row?.qty ?? 0,
+      unitPrice: row?.unitPrice ?? 0,
+      vatRate: Number(row?.vatRate ?? 0)
+    });
 
-    const qty = new Decimal(norm(row?.qty));
-    const unitPrice = new Decimal(norm(row?.unitPrice));
-    const rate = new Decimal(norm(row?.vatRate));
-
-    // NET = Birim Fiyat × Adet
-    const net = unitPrice.times(qty);
-
-    // KDV = NET = (rate / 100)
-    const vat = net.times(rate).div(100);
-
-    // BRÜT = NET + KDV
-    const gross = net.plus(vat);
-
-    return {
-      net: net.toFixed(2),
-      vat: vat.toFixed(2),
-      gross: gross.toFixed(2),
-    };
+    return { net, vat, gross };
   }
 }

@@ -29,20 +29,26 @@ export const routes: Routes = [
   },
 
   // ---- Invoices (özeller önce) ----
-  { 
-    path: 'invoices/new', 
+  // `data.mode`: InvoicesEditPage bu değeri okuyarak insert/edit/view arasında
+  // seçim yapar — önceden URL'in '/edit' ile bitip bitmediğine bakılıyordu, route
+  // adları değişirse kolayca kırılabilecek bir tespitti.
+  {
+    path: 'invoices/new',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/invoices/invoice-edit.page').then(m => m.InvoicesEditPage) 
+    data: { mode: 'insert' },
+    loadComponent: () => import('./features/invoices/invoice-edit.page').then(m => m.InvoicesEditPage)
   },
-  { 
-    path: 'invoices/:id/edit', 
+  {
+    path: 'invoices/:id/edit',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/invoices/invoice-edit.page').then(m => m.InvoicesEditPage) 
+    data: { mode: 'edit' },
+    loadComponent: () => import('./features/invoices/invoice-edit.page').then(m => m.InvoicesEditPage)
   },
-  { 
-    path: 'invoices/:id', 
+  {
+    path: 'invoices/:id',
     canActivate: [authGuard],
-    loadComponent: () => import('./features/invoices/invoice-edit.page').then(m => m.InvoicesEditPage) 
+    data: { mode: 'view' },
+    loadComponent: () => import('./features/invoices/invoice-edit.page').then(m => m.InvoicesEditPage)
   },
   { 
     path: 'invoices', 

@@ -30,7 +30,10 @@ export class InvoicesEditPage {
 
   ngOnInit() {
     const idParam = this.route.snapshot.paramMap.get('id');
-    const isView = this.router.url.endsWith('/view') || !this.router.url.endsWith('/edit') && !!idParam;
+    // Route'un kendi `data.mode`'u ('insert' | 'edit' | 'view') — önceden URL'in
+    // '/edit' ile bitip bitmediğine bakılıyordu, route yapısı değişince kırılabilirdi.
+    const routeMode = this.route.snapshot.data['mode'] as 'insert' | 'edit' | 'view' | undefined;
+    const isView = routeMode === 'view';
 
     if (!idParam) {
       this.mode = 'insert';
