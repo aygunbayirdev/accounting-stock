@@ -12,14 +12,15 @@ import {
   StockMovementDto,
   ListStockMovementsQuery,
   CreateStockMovementBody,
-  TransferStockBody
+  TransferStockBody,
+  StockTransferDetailDto
 } from '../models/stock-movement.models';
 import { PagedResult } from '../models/paged-result';
 
 @Injectable({ providedIn: 'root' })
 export class StockMovementsService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiBaseUrl}/stock-movements`;
+  private baseUrl = `${environment.apiBaseUrl}/stockmovements`;
   private transferUrl = `${environment.apiBaseUrl}/stock-transfers`;
 
   /**
@@ -45,9 +46,9 @@ export class StockMovementsService {
     if (query.warehouseId != null) params = params.set('warehouseId', query.warehouseId.toString());
     if (query.itemId != null) params = params.set('itemId', query.itemId.toString());
     if (query.type != null) params = params.set('type', query.type.toString());
-    if (query.dateFromUtc) params = params.set('dateFromUtc', query.dateFromUtc);
-    if (query.dateToUtc) params = params.set('dateToUtc', query.dateToUtc);
-    if (query.pageNumber) params = params.set('page', query.pageNumber.toString());
+    if (query.fromUtc) params = params.set('fromUtc', query.fromUtc);
+    if (query.toUtc) params = params.set('toUtc', query.toUtc);
+    if (query.pageNumber) params = params.set('pageNumber', query.pageNumber.toString());
     if (query.pageSize) params = params.set('pageSize', query.pageSize.toString());
     if (query.sort) params = params.set('sort', query.sort);
     return this.http.get<PagedResult<StockMovementDto>>(this.baseUrl, { params });
@@ -57,7 +58,7 @@ export class StockMovementsService {
    * POST /api/stock-transfers
    * Transfer stock between warehouses
    */
-  transfer(body: TransferStockBody): Observable<void> {
-    return this.http.post<void>(this.transferUrl, body);
+  transfer(body: TransferStockBody): Observable<StockTransferDetailDto> {
+    return this.http.post<StockTransferDetailDto>(this.transferUrl, body);
   }
 }

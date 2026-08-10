@@ -77,8 +77,8 @@ export interface ListStockMovementsQuery {
   warehouseId?: number | null;
   itemId?: number | null;
   type?: StockMovementType | null;
-  dateFromUtc?: string | null;      // ISO-8601 UTC
-  dateToUtc?: string | null;        // ISO-8601 UTC
+  fromUtc?: string | null;          // ISO-8601 UTC
+  toUtc?: string | null;            // ISO-8601 UTC
 }
 
 // ============================================================================
@@ -88,9 +88,9 @@ export interface ListStockMovementsQuery {
 /**
  * Create Stock Movement Body
  * Backend: CreateStockMovementCommand
+ * NOTE: BranchId is NOT sent — backend derives it from the current user's branch.
  */
 export interface CreateStockMovementBody {
-  branchId: number;
   warehouseId: number;
   itemId: number;
   type: StockMovementType;
@@ -104,12 +104,23 @@ export interface CreateStockMovementBody {
  * Backend: TransferStockCommand
  */
 export interface TransferStockBody {
-  fromWarehouseId: number;
-  toWarehouseId: number;
+  sourceWarehouseId: number;
+  targetWarehouseId: number;
   itemId: number;
   quantity: string;                 // Money string (dot separator!)
   transactionDateUtc: string;       // ISO-8601 UTC
-  note?: string | null;
+  description?: string | null;
+}
+
+/**
+ * Transfer Stock Result
+ * Backend: StockTransferDetailDto
+ */
+export interface StockTransferDetailDto {
+  success: boolean;
+  outMovementId: number;
+  inMovementId: number;
+  message: string;
 }
 
 // ============================================================================

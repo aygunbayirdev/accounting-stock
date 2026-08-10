@@ -33,7 +33,9 @@ public class ListItemsHandler : IRequestHandler<ListItemsQuery, PagedResult<Item
         if (!string.IsNullOrWhiteSpace(r.Search))
         {
             var s = r.Search.Trim().ToUpperInvariant();
-            q = q.Where(x => EF.Functions.Like(x.Name.ToUpper(), $"%{s}%"));
+            q = q.Where(x =>
+                EF.Functions.Like(x.Code.ToUpper(), $"%{s}%") ||
+                EF.Functions.Like(x.Name.ToUpper(), $"%{s}%"));
         }
 
         if (!string.IsNullOrWhiteSpace(r.Unit))

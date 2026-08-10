@@ -35,7 +35,7 @@ export class StocksService {
     if (query.warehouseId != null) params = params.set('warehouseId', query.warehouseId.toString());
     if (query.itemId != null) params = params.set('itemId', query.itemId.toString());
     if (query.search) params = params.set('search', query.search);
-    if (query.pageNumber) params = params.set('page', query.pageNumber.toString());
+    if (query.pageNumber) params = params.set('pageNumber', query.pageNumber.toString());
     if (query.pageSize) params = params.set('pageSize', query.pageSize.toString());
     if (query.sort) params = params.set('sort', query.sort);
     return this.http.get<PagedResult<StockListItemDto>>(this.baseUrl, { params });
