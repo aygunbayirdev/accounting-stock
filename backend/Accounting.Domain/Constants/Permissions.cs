@@ -86,32 +86,6 @@ public static class Permissions
         public const string UpdateStatus = "Cheque.UpdateStatus";
     }
 
-    public static class ExpenseList
-    {
-        public const string Create = "ExpenseList.Create";
-        public const string Read = "ExpenseList.Read";
-        public const string Update = "ExpenseList.Update";
-        public const string Delete = "ExpenseList.Delete";
-        public const string Review = "ExpenseList.Review";
-        public const string PostToBill = "ExpenseList.PostToBill";
-    }
-
-    public static class ExpenseDefinition
-    {
-        public const string Create = "ExpenseDefinition.Create";
-        public const string Read = "ExpenseDefinition.Read";
-        public const string Update = "ExpenseDefinition.Update";
-        public const string Delete = "ExpenseDefinition.Delete";
-    }
-
-    public static class FixedAsset
-    {
-        public const string Create = "FixedAsset.Create";
-        public const string Read = "FixedAsset.Read";
-        public const string Update = "FixedAsset.Update";
-        public const string Delete = "FixedAsset.Delete";
-    }
-
     public static class Category
     {
         public const string Create = "Category.Create";
@@ -185,12 +159,6 @@ public static class Permissions
             CashBankAccount.Create, CashBankAccount.Read, CashBankAccount.Update, CashBankAccount.Delete,
             // Cheque
             Cheque.Create, Cheque.Read, Cheque.Update, Cheque.Delete, Cheque.UpdateStatus,
-            // ExpenseList
-            ExpenseList.Create, ExpenseList.Read, ExpenseList.Update, ExpenseList.Delete, ExpenseList.Review, ExpenseList.PostToBill,
-            // ExpenseDefinition
-            ExpenseDefinition.Create, ExpenseDefinition.Read, ExpenseDefinition.Update, ExpenseDefinition.Delete,
-            // FixedAsset
-            FixedAsset.Create, FixedAsset.Read, FixedAsset.Update, FixedAsset.Delete,
             // Category
             Category.Create, Category.Read, Category.Update, Category.Delete,
             // Branch

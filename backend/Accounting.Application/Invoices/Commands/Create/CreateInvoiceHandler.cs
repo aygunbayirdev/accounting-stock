@@ -135,29 +135,26 @@ public class CreateInvoiceHandler
                 WithholdingRate = lineDto.WithholdingRate ?? item.DefaultWithholdingRate ?? 0
             };
 
-            var gross = DecimalExtensions.RoundAmount(line.Qty * line.UnitPrice);
-            line.Gross = gross;
-
             var discountRate = lineDto.DiscountRate ?? 0;
             line.DiscountRate = discountRate;
-            line.DiscountAmount = DecimalExtensions.RoundAmount(gross * (discountRate / 100m));
 
-            var net = gross - line.DiscountAmount;
-            line.Net = net;
+            var totals = Accounting.Application.Services.InvoiceLineCalculator.Calculate(
+                line.Qty, line.UnitPrice, line.VatRate, discountRate, line.WithholdingRate);
 
-            var vat = DecimalExtensions.RoundAmount(net * (line.VatRate / 100m));
-            line.Vat = vat;
-
-            line.WithholdingAmount = DecimalExtensions.RoundAmount(vat * (line.WithholdingRate / 100m));
-            line.GrandTotal = net + vat;
+            line.Gross = totals.Gross;
+            line.DiscountAmount = totals.DiscountAmount;
+            line.Net = totals.Net;
+            line.Vat = totals.Vat;
+            line.WithholdingAmount = totals.WithholdingAmount;
+            line.GrandTotal = totals.GrandTotal;
 
             invoice.Lines.Add(line);
 
-            totalLineGross += gross;
-            totalDiscount += line.DiscountAmount;
-            totalNet += net;
-            totalVat += vat;
-            totalWithholding += line.WithholdingAmount;
+            totalLineGross += totals.Gross;
+            totalDiscount += totals.DiscountAmount;
+            totalNet += totals.Net;
+            totalVat += totals.Vat;
+            totalWithholding += totals.WithholdingAmount;
         }
 
         invoice.TotalLineGross = totalLineGross;

@@ -1,0 +1,122 @@
+# Accounting & Stock Management — Full-Stack Temizlik & Tamamlama Planı
+
+**Amaç:** Şu an backend'i MVP seviyesinde, frontend'i büyük ölçüde eksik olan bu projeyi; **temiz kodlu, güvenli, uçtan uca ekranları tamamlanmış, portföyde gururla sergilenebilecek bir full-stack proje** haline getirmek.
+
+**Kaynak:** Bu plan, backend (`Accounting.Api/Domain/Application/Infrastructure/Tests`) ve frontend (`accounting-web`) üzerinde yapılan tam kapsamlı bir kod incelemesinin bulgularına dayanıyor (2026-08-10). Mevcut kurallar `backend/PROJECT_RULES.md` ve `frontend/FRONTEND_RULES.md` dosyalarında tanımlı — bu plan o kuralları **değiştirmiyor**, onlara uyumu sağlıyor ve ihlal edilen yerleri düzeltiyor.
+
+**Genel değerlendirme:** Backend'in mimari iskeleti (Clean Architecture + CQRS/MediatR + FluentValidation + JWT + audit trail + optimistic concurrency) sağlam — bu bir **yeniden yazım değil, disiplinli bir refactor + eksik parça tamamlama** işi. Frontend'de servis/model/interceptor/guard katmanı (18 servis, 20 model, auth altyapısı) beklenenden çok daha ileride; asıl eksik olan **ekranlar**. Yani önümüzdeki iş büyük ölçüde "var olan sağlam kalıpları tekrar tekrar uygulamak" — sıfırdan altyapı kurmak değil.
+
+**Önerilen sıralama:** Önce backend'deki güvenlik/doğruluk açıklarını kapat (küçük ama kritik), sonra backend'i temizle, sonra frontend'i sistematik olarak inşa et (önce temel varlıklar — Cari/Şube/Depo — çünkü diğer ekranlar bunlara bağımlı), en son cilalama + test + deploy.
+
+---
+
+## Faz 0 — Kritik Güvenlik & Doğruluk Düzeltmeleri (Backend) ✅ TAMAMLANDI (2026-08-10)
+
+Bunlar portföyde sergilemeden önce **mutlaka** kapatılması gereken, küçük ama gerçek açıklar.
+
+- [x] `appsettings.json`'daki hardcoded zayıf JWT secret'ı kaldırıldı; `Program.cs` artık config'de secret yoksa/32 karakterden kısaysa startup'ta `InvalidOperationException` fırlatıyor. Lokal geliştirme için `dotnet user-secrets` kuruldu, `backend/README.md` güncellendi.
+- [x] `GetStockByIdHandler` ve `GetStockMovementByIdHandler`'a `.ApplyBranchFilter()` eklendi (IDOR kapatıldı).
+- [x] `UserConfiguration` ve `RoleConfiguration`'a `ApplySoftDelete()` eklendi; `Users.Email` unique index'i `HasFilter("[IsDeleted] = 0")` ile filtrelendi (migration: `AddUserRoleSoftDeleteFilters`). Not: `RolePermission`/`UserRole` saf junction entity — `ISoftDeletable` implemente etmiyorlar, bu yüzden onlara filter eklenmedi (ilk denetimin bu ikisi için önerisi yanlıştı, entity'ler incelenince düzeltildi).
+- [x] `AuthController.Register` tamamen kaldırıldı (backend: controller/command/handler/validator; frontend: `/register` route, sayfası, `AuthService.register()`, login sayfasındaki link, interceptor whitelist girdisi). Karar: bu tek şirketli bir ERP, herkese açık self-registration yerine kullanıcılar `POST /api/users` (admin-only, şube+rol atamalı) ile oluşturuluyor — bu akış zaten mevcuttu ve register'dan daha güvenliydi.
+- [x] `Program.cs`'deki migration+seed bloğu ayrıştırıldı: migration hâlâ koşulsuz çalışıyor (şema için gerekli), seed artık `Seeding:Enabled` config anahtarıyla korunuyor (varsayılan `true`, docker-compose'u bozmaz).
+- [x] (Plan dışı, denetim sırasında bulundu) `backend/.dockerignore` ve `frontend/.dockerignore` eklendi — bunlar olmadan lokal `dotnet build`/`npm install` sonrası `docker compose build` host'un Windows'a özgü `obj/`/`node_modules` klasörlerini container'a kopyalayıp restore'u kırıyordu.
+- [x] Doğrulama: `dotnet build` (0 hata), `dotnet test` (Faz 0 sonunda 75/75 yeşil), `npx tsc --noEmit` (frontend, 0 hata), `docker compose up -d --build sqlserver backend` + gerçek smoke test (health 200, seeded admin ile login 200, `/api/auth/register` artık 404, `docker compose build frontend` başarılı).
+- [ ] **Commit edilmedi** — kullanıcı döndüğünde `git status`/`git diff` ile gözden geçirip onaylaması bekleniyor.
+
+## Faz 1 — Backend Mimari Temizliği & Tutarlılık (kısmen tamamlandı, 2026-08-10)
+
+Küçük/orta ölçekli, düşük riskli maddeler otomatik pilotta tamamlandı ve doğrulandı (`dotnet build` 0 hata, `dotnet test` 74/74 yeşil — UnitTest1 silindiği için 75'ten 74'e düştü). Büyük mimari kararlar gerektiren maddeler **bilinçli olarak ertelendi** — bunlar tek oturumda mekanik şekilde yapılamayacak kadar geniş yüzeyli/riskli değişiklikler, kullanıcının onayı/dahil olması daha doğru.
+
+- [x] Ölü kod silindi: `GetInvoicesQueryHandler_EXAMPLE.cs`, `InvoiceCalculator.cs`, `CreateInvoiceRequest.cs`/`CreateInvoiceResponse.cs`, `IAppDbContext.QueryRaw`/`AppDbContext.QueryRaw`, `UnitTest1.cs`, `Permissions.cs`'deki `ExpenseList`/`ExpenseDefinition`/`FixedAsset` grupları + `DataSeeder.cs`'deki bunlara referans veren rol-izin atamaları.
+- [x] **Fatura toplam hesaplaması birleştirildi**: yeni `Accounting.Application/Services/InvoiceLineCalculator.cs`, hem `CreateInvoiceHandler` hem `UpdateInvoiceHandler` artık bunu kullanıyor. Bu arada gerçek bir tutarsızlık bulundu ve düzeltildi: `UpdateInvoiceHandler.ProcessLine` satır tutarını `RoundQuantity` (3 hane) ile yuvarlıyordu, `CreateInvoiceHandler` ise `RoundAmount` (2 hane) kullanıyordu — aynı fatura önce oluşturulup sonra güncellenirse `Gross`/`Net`/`Vat` küçük farklarla kayabiliyordu. Artık ikisi de `RoundAmount` kullanıyor (PROJECT_RULES.md'nin `AmountJsonConverter` 2-hane kuralıyla tutarlı).
+- [x] `TransferStockHandler`'daki kendi kendine bırakılmış "Wait, ... tutarsız mı?" yorumu incelendi: **gerçek bir tutarsızlık yoktu** — hem `TransferStockHandler` hem `CreateStockMovementHandler` zaten `StockMovement.Quantity`'yi pozitif büyüklük olarak saklıyor, yön `Type` ile belirleniyor. Kafa karıştıran yorum, kararı netleştiren bir yorumla değiştirildi.
+- [x] `BranchesController`'ın block-scoped namespace'i diğer 17 controller gibi file-scoped'a çevrildi.
+- [x] JWT settings'in çift bağlanması giderildi: `Program.cs`'deki `AddSingleton(Options.Create(jwtSettings))` kaldırıldı; DI'daki tek gerçek kaynak artık `Infrastructure/DependencyInjection.cs`'deki `services.Configure<JwtSettings>(...)`. `Program.cs`'deki yerel `jwtSettings` değişkeni sadece `JwtBearerOptions` kurulumu için kullanılıyor (açıklayıcı yorum eklendi).
+- [x] CORS origin'leri `Cors:AllowedOrigins` config bölümünden okunuyor (`Cors__AllowedOrigins__0` env var ile prod origin eklenebilir), config yoksa mevcut localhost:3000/4200 varsayılanına düşüyor — geriye dönük uyumlu.
+- [ ] **Stok tutarlılığı sorunu (ERTELENDİ — büyük mimari karar)**: `Stock`/`StockMovement` fiziksel bakiye ile `StockService.GetStockStatusAsync`'in fatura/sipariş satırlarından yeniden hesapladığı sayı hâlâ iki bağımsız kaynak. Bu, hangisinin tek doğruluk kaynağı olacağına dair bir ürün kararı gerektiriyor (bkz. plandaki öneri) — kullanıcı onayı olmadan otomatik yapılmadı.
+- [ ] **`ApproveOrderHandler`/`CreateInvoiceHandler` N+1 sorunları (ERTELENDİ)**: Davranışı değiştirmeden doğru test kapsamı olmadan (Faz 2 önce gelmeli) elle dokunmak riskli bulundu.
+- [ ] **API contract (Request/Response DTO) katmanı (ERTELENDİ)**: 18 controller'ın tamamını kapsayan, public API şeklini değiştiren geniş yüzeyli bir değişiklik — tek oturumda mekanik yapılırsa gözden kaçan bir kırılma riski yüksek.
+- [ ] **`ExceptionToProblemDetailsMiddleware` → yerleşik `IExceptionHandler` (ERTELENDİ)**: Hata response şeklini (ProblemDetails alanları) etkileyebilecek bir değişiklik, frontend'in `http-problem-interceptor.ts`'i buna göre yazıldığı için birlikte test edilmeden yapılmamalı.
+- [ ] Route pattern / `{id:int}` constraint / RowVersion body-vs-query tutarsızlıklarının tam taranması (ERTELENDİ — 18 controller'ı tek tek gözden geçirmek gerekiyor, BranchesController'daki namespace dışında dokunulmadı).
+- [ ] Hata mesajı dili tutarlılığı (Türkçe/İngilizce karışık) (ERTELENDİ — büyük string-literal taraması gerektiriyor, ayrı bir oturumda yapılmalı).
+
+## Faz 2 — Backend Test Kapsamının Genişletilmesi
+
+- [ ] `Accounting.Tests` projesine `Microsoft.AspNetCore.Mvc.Testing` + `Accounting.Api` referansı ekleyerek gerçek `WebApplicationFactory` tabanlı entegrasyon testleri kurulabilir hale getir (şu an yapısal olarak imkansız).
+- [ ] En az birkaç controller için uçtan uca entegrasyon testi yaz (auth → JWT al → korumalı endpoint çağır → beklenen sonuç), özellikle `ExceptionToProblemDetailsMiddleware`'in 6 dalını kapsayan testler.
+- [ ] Faz 0'da düzeltilen iki branch-isolation açığı için regresyon testi yaz (başka şubenin stok/stok hareketi kaydına 403/404 dönüldüğünü doğrula).
+- [ ] `AuthController.Register`'ın yetkilendirme/rol atama davranışını test et.
+- [ ] Stok tutarlılığı düzeltmesi (Faz 1) için: manuel stok düzeltmesi (`AdjustmentIn`/`Out`) sonrası `StockService`'in doğru müsaitlik döndürdüğünü doğrulayan test ekle.
+
+## Faz 3 — Frontend: Bug Düzeltmeleri & Altyapı Temizliği
+
+Yeni ekran yazmadan önce mevcut kodun sağlam bir temel olduğundan emin ol.
+
+- [ ] **Gerçek bug**: `invoice-edit.page.ts`'deki `(InvoiceFormComponent as any).prototype.id = this.id` satırını kaldır; `id`'yi `@Input()` olarak normal şekilde component'e geçir. Bu, class prototype'ını mutasyona uğratıyor ve component instance'ları arasında state sızdırabilir.
+- [ ] Bozuk `app.spec.ts`'i düzelt (olmayan `./app`/`App`'i import ediyor, gerçek kök component `AppComponent`) — ya sil ya da gerçek component'e göre yeniden yaz.
+- [ ] `core/utils/money.utils.ts` (iyi tasarlanmış, dokümante edilmiş ama hiç kullanılmayan modül) ile `invoices-form.component.ts` içindeki elle yazılmış `preview()` metodunun aynı hesaplamayı tekrarlamasını çöz — `invoices-form` gerçek `money.utils.ts` fonksiyonlarını kullansın, kopya silinsin.
+- [ ] `adminGuard`'ı (`core/guards/auth.guard.ts`) gerçekten route'lara bağla, ya da Faz 8'deki permission-tabanlı guard'la değiştir.
+- [ ] `src/styles.scss`'deki çift `@include mat.theme(...)` çağrısını tek, temiz bir tema tanımına indir.
+- [ ] AG Grid tema kullanımını tekilleştir: `invoices-form.component.ts`'deki `ag-theme-quartz` CSS class'ı yerine paylaşılan `AG_THEME` objesini (`core/ag-grid/ag-theme.ts`) kullan (FRONTEND_RULES.md §"AG Grid Standardı" ile tutarlı hale getir).
+- [ ] Fragile route-mode tespitini (`invoice-edit.page.ts:33`, URL'in `/edit` ile bitip bitmediğine bakarak view/edit modu belirleme) route `data` üzerinden açık bir mod bilgisiyle değiştir.
+- [ ] `login-page.component.ts`/`register-page.component.ts`'deki neredeyse birebir kopya inline stilleri paylaşılan bir "auth layout" component/SCSS partial'ına çıkar.
+- [ ] Hardcoded Türkçe UI string'lerini (hata mesajları, snackbar metinleri gibi tekrar edenleri) tek bir mesaj sabitleri dosyasında topla — tam i18n gerekmez, ama tekrarı ve tutarsızlığı önle.
+
+## Faz 4 — Frontend: Temel Varlık Ekranları (diğer ekranların önkoşulu)
+
+Fatura/sipariş formları şu an cari/şube ID'sini elle yazdırıyor — bu üç modül olmadan diğer ekranlar da tam olgunlaşamaz.
+
+- [ ] **Cariler (Contacts)** — liste + oluştur/düzenle/sil ekranı. Bu, invoice/order formlarındaki çıplak `contactId` sayı input'unun yerini alacak bir arama/autocomplete bileşeninin de önkoşulu.
+- [ ] **Şubeler (Branches)** — liste + oluştur/düzenle/sil ekranı (şu an sadece invoice listesinde dropdown olarak tüketiliyor, kendi yönetim ekranı yok).
+- [ ] **Depolar (Warehouses)** — liste + oluştur/düzenle/sil ekranı.
+- [ ] Paylaşılan bir **"entity picker" bileşeni** (autocomplete + arama, `ContactsService`/`BranchesService`/`ItemsService` ile parametrik çalışan) yaz — invoice formundaki çıplak ID input'larını bununla değiştireceğiz (Faz 5).
+
+## Faz 5 — Frontend: Mevcut Ekranların Tamamlanması
+
+- [ ] **Fatura formu**: `branchId`/`contactId` çıplak ID input'larını Faz 4'teki entity picker ile değiştir; eksik alanları ekle (`discountRate`, `discountAmount`, `withholdingRate`, `expenseDefinitionId`, `waybillNumber`, `waybillDateUtc`, `paymentDueDateUtc` — bunlar zaten `invoice.models.ts`'de tanımlı, backend command'ları destekliyor, sadece UI'da yok); satır grid'ine gerekli validasyonları ekle (zorunlu `itemId`, min/max `vatRate` vs.).
+- [ ] **Stok kartları (Items)**: oluştur/düzenle/sil ekranını tamamla (şu an sadece liste var, servis katmanı zaten hazır).
+- [ ] **Sabit kıymetler (Fixed Assets)**: oluştur/düzenle/sil ekranını tamamla; devre dışı bırakılmış sıralamayı (`fixed-assets-page.component.ts:71-73`) düzelt.
+- [ ] **Tahsilat/Ödeme (Payments)**: oluştur/düzenle/sil ekranını tamamla (servis zaten tam CRUD destekliyor, sadece liste ekranı var).
+
+## Faz 6 — Frontend: Kalan Modüller (sıfırdan ekran)
+
+Servis/model katmanı zaten hazır olan, hiç UI'ı olmayan alanlar. Faz 4/5'teki kalıpları (list-grid, form, entity picker) tekrar kullanarak inşa et.
+
+- [ ] **Siparişler (Orders)**: liste + oluştur/düzenle + onayla/iptal et + faturaya dönüştür akışı.
+- [ ] **Stok hareketleri (Stock Movements)**: liste (salt okunur ledger görünümü) + manuel hareket girişi.
+- [ ] **Stok durumu (Stocks)**: depo/şube bazlı güncel stok seviyeleri listesi.
+- [ ] **Kasa/Banka hesapları (Cash & Bank Accounts)**: liste + oluştur/düzenle/sil.
+- [ ] **Çek/Senet (Cheques)**: liste + al/ver/tahsil et/ciro et akışları (backend `Receive`/`Issue`/`Cash`/`Endorse` command'larını kapsayacak şekilde).
+- [ ] **Kategoriler (Categories)**: liste + oluştur/düzenle/sil (not: backend'de service dosyası eksik görünüyor — önce backend `CategoriesService` frontend eşleniğini yaz, sonra ekranı).
+- [ ] **Firma ayarları (Company Settings)**: tekil kayıt düzenleme formu.
+- [ ] **Kullanıcı yönetimi (Users)**: liste + oluştur/düzenle/sil + şifre değiştirme (admin-only).
+- [ ] **Rol yönetimi (Roles)**: liste + oluştur/düzenle/sil + permission ataması.
+
+## Faz 7 — Dashboard & Raporlama UI
+
+- [ ] Ana sayfa/dashboard ekranı (root route artık `/invoices`'a değil `/dashboard`'a yönlensin) — backend'deki `GET /api/reports/dashboard` endpoint'ini kullanan özet kartlar (günlük satış, kasa durumu, alacaklar vb.).
+- [ ] Cari ekstre ekranı (`GET /api/reports/contact/{id}/statement`).
+- [ ] Stok durumu raporu ekranı + Excel export (backend zaten `stock-status/export` sağlıyor).
+- [ ] Gelir/gider raporu ekranı (`income-expense` endpoint'i).
+
+## Faz 8 — Rol/Yetki Bazlı UI, Tutarlılık, Cilalama
+
+- [ ] Backend'in `permission` claim listesine göre çalışan bir permission-check servis/directive'i yaz (`hasPermission('Invoice.Create')` gibi); menüdeki her linki ve her oluştur/düzenle/sil butonunu buna göre koşullu göster.
+- [ ] Sidenav menüsünü role/permission'a göre filtrele (şu an her authenticated kullanıcıya aynı 4 link gösteriliyor).
+- [ ] Silme işlemleri için tutarlı bir onay dialog'u (MatDialog) pattern'i kur, tüm liste ekranlarına uygula.
+- [ ] Boş durum (empty state) ve hata durumu gösterimlerini tüm liste ekranlarında tutarlı hale getir.
+- [ ] Tüm yeni ekranların `FRONTEND_RULES.md`'deki money/tarih/route/naming kurallarına uyduğunu gözden geçir.
+
+## Faz 9 — Test, CI, Deploy
+
+- [ ] Kritik akışlar için gerçek Angular unit/component testleri yaz (auth flow, invoice form hesaplama mantığı, guard'lar) — şu an tek spec dosyası bozuk ve gerçek kapsam sıfır.
+- [ ] Backend + frontend için GitHub Actions CI pipeline'ı kur (build + test her push/PR'da) — ECommercePlatform projesindeki `.github/workflows/ci.yml` deseniyle tutarlı.
+- [ ] `docker-compose.yml`'i gözden geçir: Faz 0'daki seed/migration guard'ını yansıt, backend Dockerfile'a non-root user + healthcheck ekle.
+- [ ] Projeyi bir sunucuya canlıya al (ECommercePlatform/WMS'teki gibi kendi subdomain'i ile), portföydeki proje kartına canlı demo linki ekle.
+- [ ] Son bir uçtan uca manuel tur: login → cari oluştur → stok kartı oluştur → sipariş oluştur → onayla → faturaya çevir → tahsilat işle → dashboard'da rakamların doğru yansıdığını doğrula.
+
+---
+
+## İlerlemeyi nasıl kullanmalı
+
+Bu liste kabaca öncelik sırasına göredir ama katı değildir — Faz 0 kesinlikle önce gelmeli (güvenlik), Faz 4 Faz 5/6'dan önce gelmeli (bağımlılık), gerisi paralel ilerlenebilir. Her fazı bitirdikçe ilgili kutucukları işaretle; büyük/çok parçalı maddeler tamamlandıkça alt görevlere bölünebilir.

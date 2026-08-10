@@ -242,26 +242,21 @@ public sealed class UpdateInvoiceHandler : IRequestHandler<UpdateInvoiceCommand,
         decimal discountRate = dto.DiscountRate ?? 0;
         int withholdingRate = dto.WithholdingRate ?? item.DefaultWithholdingRate ?? 0;
 
-        // Calculations
-        var gross = DecimalExtensions.RoundQuantity(dto.Qty * dto.UnitPrice);
-        var discountAmount = DecimalExtensions.RoundAmount(gross * discountRate / 100m);
-        var net = gross - discountAmount;
-        var vatAmount = DecimalExtensions.RoundAmount(net * dto.VatRate / 100m);
-        var withholdingAmount = DecimalExtensions.RoundAmount(vatAmount * withholdingRate / 100m);
-        var grandTotal = net + vatAmount;
+        var totals = InvoiceLineCalculator.Calculate(
+            dto.Qty, dto.UnitPrice, dto.VatRate, discountRate, withholdingRate);
 
         // Assign to Line
         line.Qty = dto.Qty;
         line.UnitPrice = dto.UnitPrice;
         line.VatRate = dto.VatRate;
         line.DiscountRate = discountRate;
-        line.DiscountAmount = discountAmount;
-        line.Gross = gross;
-        line.Net = net;
-        line.Vat = vatAmount;
+        line.DiscountAmount = totals.DiscountAmount;
+        line.Gross = totals.Gross;
+        line.Net = totals.Net;
+        line.Vat = totals.Vat;
         line.WithholdingRate = withholdingRate;
-        line.WithholdingAmount = withholdingAmount;
-        line.GrandTotal = grandTotal;
+        line.WithholdingAmount = totals.WithholdingAmount;
+        line.GrandTotal = totals.GrandTotal;
         line.UpdatedAtUtc = now;
     }
 

@@ -1,6 +1,5 @@
 using Accounting.Api.Contracts.Authentication;
 using Accounting.Application.Authentication.Commands.Login;
-using Accounting.Application.Authentication.Commands.Register;
 using Accounting.Application.Authentication.Commands.RefreshToken;
 using Accounting.Application.Authentication.Common;
 using MediatR;
@@ -9,28 +8,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Accounting.Api.Controllers;
 
+// Not: public self-registration kasıtlı olarak yok. Bu, tek şirketli bir
+// muhasebe/ERP sistemi - hesaplar admin tarafından POST /api/users üzerinden
+// (Permissions.User.Create) şube ve rol atanarak oluşturulur.
 [Route("api/auth")]
 [ApiController]
 [AllowAnonymous]
 public class AuthController(ISender mediator) : ControllerBase
 {
-    [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterRequest request)
-    {
-        var command = new RegisterCommand(
-            request.FirstName,
-            request.LastName,
-            request.Email,
-            request.Password
-        );
-
-        var authResult = await mediator.Send(command);
-        
-        SetRefreshTokenCookie(authResult.RefreshToken);
-
-        return Ok(MapToAuthResponse(authResult));
-    }
-
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
@@ -99,5 +84,4 @@ public class AuthController(ISender mediator) : ControllerBase
     }
 }
 
-public record RegisterRequest(string FirstName, string LastName, string Email, string Password);
 public record LoginRequest(string Email, string Password);

@@ -70,10 +70,22 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddProblemDetails();
 
 // Auth Configuration
+// This local instance is only used to configure JwtBearerOptions below, which needs a
+// concrete value at startup (not a DI-resolved IOptions<T>). The DI-visible
+// IOptions<JwtSettings> (used by JwtTokenGenerator etc.) comes exclusively from
+// services.Configure<JwtSettings>(...) in Accounting.Infrastructure/DependencyInjection.cs —
+// there used to be a second, redundant registration here that bound the same section twice.
 var jwtSettings = new Accounting.Infrastructure.Authentication.JwtSettings();
 builder.Configuration.Bind(Accounting.Infrastructure.Authentication.JwtSettings.SectionName, jwtSettings);
 
-builder.Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(jwtSettings));
+if (string.IsNullOrWhiteSpace(jwtSettings.Secret) || jwtSettings.Secret.Length < 32)
+{
+    throw new InvalidOperationException(
+        "JwtSettings:Secret is missing or shorter than 32 characters. Set it via the " +
+        "JwtSettings__Secret environment variable (docker-compose reads this from .env) " +
+        "or `dotnet user-secrets set \"JwtSettings:Secret\" \"...\"` for local development. " +
+        "There is no built-in default — a hardcoded fallback would be a security hole.");
+}
 
 builder.Services.AddAuthentication(defaultScheme: Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -100,13 +112,16 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBeh
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));   
 
 // CORS
+// Cors:AllowedOrigins in config (env var Cors__AllowedOrigins__0, __1, ...) so a real
+// deployment can add its actual frontend origin without a code change. Falls back to the
+// local dev ports when the section is absent.
+var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? ["http://localhost:3000", "http://localhost:4200"];
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", p => p
-        .WithOrigins(
-            "http://localhost:3000", // Next.js / React
-            "http://localhost:4200"  // Angular
-        )
+        .WithOrigins(corsOrigins)
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials() // Cookie based auth requires AllowCredentials
@@ -148,15 +163,23 @@ app.MapControllers().RequireAuthorization();
 
 app.MapHealthChecks("/health");
 
-// Database Migration + Seeding
+// Database Migration (always) + Demo Seeding (config-gated).
+// Seeding:Enabled defaults to true so the docker-compose demo keeps working
+// out of the box; set it to false via config/env for a deployment that
+// should never get the demo admin/branch/role data.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    var invoiceBalanceService = scope.ServiceProvider.GetRequiredService<IInvoiceBalanceService>();
-    var accountBalanceService = scope.ServiceProvider.GetRequiredService<IAccountBalanceService>();
-    var passwordHasher = scope.ServiceProvider.GetRequiredService<Accounting.Application.Common.Interfaces.IPasswordHasher>();
     await db.Database.MigrateAsync();
-    await DataSeeder.SeedAsync(db, invoiceBalanceService, accountBalanceService, passwordHasher);
+
+    var seedingEnabled = builder.Configuration.GetValue("Seeding:Enabled", true);
+    if (seedingEnabled)
+    {
+        var invoiceBalanceService = scope.ServiceProvider.GetRequiredService<IInvoiceBalanceService>();
+        var accountBalanceService = scope.ServiceProvider.GetRequiredService<IAccountBalanceService>();
+        var passwordHasher = scope.ServiceProvider.GetRequiredService<Accounting.Application.Common.Interfaces.IPasswordHasher>();
+        await DataSeeder.SeedAsync(db, invoiceBalanceService, accountBalanceService, passwordHasher);
+    }
 }
 
 app.Run();

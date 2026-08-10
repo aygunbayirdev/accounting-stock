@@ -3,15 +3,10 @@ import { authGuard, guestGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   // Public routes (guest only)
-  { 
-    path: 'login', 
+  {
+    path: 'login',
     canActivate: [guestGuard],
-    loadComponent: () => import('./features/auth/login-page.component').then(m => m.LoginPageComponent) 
-  },
-  { 
-    path: 'register', 
-    canActivate: [guestGuard],
-    loadComponent: () => import('./features/auth/register-page.component').then(m => m.RegisterPageComponent) 
+    loadComponent: () => import('./features/auth/login-page.component').then(m => m.LoginPageComponent)
   },
 
   // Protected routes (authenticated users only)

@@ -11,8 +11,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
 
   // Skip token injection for auth endpoints
-  if (req.url.includes('/auth/login') || 
-      req.url.includes('/auth/register') || 
+  if (req.url.includes('/auth/login') ||
       req.url.includes('/auth/refresh')) {
     return next(req);
   }

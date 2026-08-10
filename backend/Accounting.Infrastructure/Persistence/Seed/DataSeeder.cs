@@ -1154,11 +1154,6 @@ public static class DataSeeder
             Permissions.Payment.Create, Permissions.Payment.Read, Permissions.Payment.Update, Permissions.Payment.Delete,
             Permissions.CashBankAccount.Create, Permissions.CashBankAccount.Read, Permissions.CashBankAccount.Update, Permissions.CashBankAccount.Delete,
             Permissions.Cheque.Create, Permissions.Cheque.Read, Permissions.Cheque.Update, Permissions.Cheque.Delete, Permissions.Cheque.UpdateStatus,
-            // Masraf
-            Permissions.ExpenseList.Create, Permissions.ExpenseList.Read, Permissions.ExpenseList.Update, Permissions.ExpenseList.Delete, Permissions.ExpenseList.Review, Permissions.ExpenseList.PostToBill,
-            Permissions.ExpenseDefinition.Create, Permissions.ExpenseDefinition.Read, Permissions.ExpenseDefinition.Update, Permissions.ExpenseDefinition.Delete,
-            // Demirbaş
-            Permissions.FixedAsset.Create, Permissions.FixedAsset.Read, Permissions.FixedAsset.Update, Permissions.FixedAsset.Delete,
             // Ticari
             Permissions.Contact.Create, Permissions.Contact.Read, Permissions.Contact.Update, Permissions.Contact.Delete,
             Permissions.Order.Create, Permissions.Order.Read, Permissions.Order.Update, Permissions.Order.Delete, Permissions.Order.Approve, Permissions.Order.CreateInvoice, Permissions.Order.Cancel,
@@ -1184,7 +1179,6 @@ public static class DataSeeder
             Permissions.Item.Read,
             Permissions.CashBankAccount.Read, // Bakiyeyi görür ama düzeltme yapamaz
             Permissions.Cheque.Create, Permissions.Cheque.Read, Permissions.Cheque.Update, // Çek girişi yapar
-            Permissions.ExpenseList.Create, Permissions.ExpenseList.Read, Permissions.ExpenseList.Update,
             Permissions.Stock.Read,
             Permissions.Warehouse.Read,
             Permissions.Category.Read,

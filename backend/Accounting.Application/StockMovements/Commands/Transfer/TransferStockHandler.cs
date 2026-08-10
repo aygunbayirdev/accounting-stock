@@ -88,10 +88,9 @@ public class TransferStockHandler(IAppDbContext db) : IRequestHandler<TransferSt
             WarehouseId = r.SourceWarehouseId,
             ItemId = r.ItemId,
             Type = StockMovementType.TransferOut,
-            Quantity = qty, // Out movements stored as positive quantity in our convention, but logic subtracts.
-                            // Wait, CreateStockMovementHandler says: "IsIn ? qty : -qty".
-                            // Here we manually adjusted stock. 
-                            // But for Reporting consistency, we should store positive Qty.
+            // Quantity is always the positive magnitude, same convention as CreateStockMovementHandler
+            // (IsIn(Type) ? +qty : -qty is applied to the Stock snapshot, never to the stored Quantity).
+            Quantity = qty,
             TransactionDateUtc = now,
             Note = $"{note} (To: {targetWh.Name})",
             RowVersion = []

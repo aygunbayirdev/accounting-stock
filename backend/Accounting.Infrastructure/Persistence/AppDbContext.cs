@@ -78,9 +78,4 @@ public class AppDbContext : DbContext, IAppDbContext
 
     public new EntityEntry Entry(object entity) => base.Entry(entity);
 
-    public IQueryable<T> QueryRaw<T>(FormattableString sql) where T : class
-    {
-        return Set<T>().FromSqlInterpolated(sql);
-    }
-
 }

@@ -40,8 +40,4 @@ public interface IAppDbContext
 
     // concurrency için gerekli
     EntityEntry Entry(object entity);
-
-    // raw sql query için gerekli
-    IQueryable<T> QueryRaw<T>(FormattableString sql) where T : class;
-
 }

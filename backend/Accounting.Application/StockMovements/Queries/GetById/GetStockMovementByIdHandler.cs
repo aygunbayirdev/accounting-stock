@@ -1,5 +1,7 @@
 ﻿using Accounting.Application.Common.Abstractions;
 using Accounting.Application.Common.Exceptions;
+using Accounting.Application.Common.Extensions;
+using Accounting.Application.Common.Interfaces;
 using Accounting.Application.Common.Utils;
 using Accounting.Application.StockMovements.Queries.Dto;
 using MediatR;
@@ -7,12 +9,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Accounting.Application.StockMovements.Queries.GetById;
 
-public class GetStockMovementByIdHandler(IAppDbContext db) : IRequestHandler<GetStockMovementByIdQuery, StockMovementDetailDto>
+public class GetStockMovementByIdHandler(IAppDbContext db, ICurrentUserService currentUserService) : IRequestHandler<GetStockMovementByIdQuery, StockMovementDetailDto>
 {
     public async Task<StockMovementDetailDto> Handle(GetStockMovementByIdQuery r, CancellationToken ct)
     {
         var e = await db.StockMovements
             .AsNoTracking()
+            .ApplyBranchFilter(currentUserService)
             .Include(x => x.Warehouse)
             .Include(x => x.Item)
             .FirstOrDefaultAsync(x => x.Id == r.Id, ct);

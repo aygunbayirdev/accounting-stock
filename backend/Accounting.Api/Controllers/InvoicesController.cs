@@ -1,6 +1,5 @@
 ﻿using Accounting.Application.Common.Abstractions;
 using Accounting.Api.Contracts;
-using Accounting.Api.Contracts.Invoices;
 using Accounting.Application.Invoices.Commands.Create;
 using Accounting.Application.Invoices.Commands.Delete;
 

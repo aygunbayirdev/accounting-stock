@@ -8,12 +8,11 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from '../../../environments/environment';
-import { 
-  RegisterBody, 
-  LoginBody, 
-  AuthResponse, 
+import {
+  LoginBody,
+  AuthResponse,
   CurrentUser,
-  JwtClaims 
+  JwtClaims
 } from '../models/auth.models';
 
 const TOKEN_KEY = 'accessToken';
@@ -50,15 +49,6 @@ export class AuthService {
         this.clearAuth();
       }
     }
-  }
-
-  /**
-   * POST /api/auth/register
-   */
-  register(body: RegisterBody): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.baseUrl}/register`, body).pipe(
-      tap(response => this.handleAuthResponse(response))
-    );
   }
 
   /**

@@ -4,6 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>accounting-api-b3f2a6e1-7c4d-4a9b-9e2f-1d6c8a0f5b3e</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -8,7 +8,12 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.HasIndex(u => u.Email).IsUnique();
+        builder.ApplySoftDelete();
+
+        // Filtered so a soft-deleted user's email can be reused by a new account.
+        builder.HasIndex(u => u.Email)
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         builder.Property(u => u.FirstName)
             .HasMaxLength(50)

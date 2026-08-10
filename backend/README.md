@@ -631,6 +631,12 @@ FixedAsset → Item (Type=FixedAsset)
 
 ### Kurulum
 ```bash
+# JWT secret'ı ayarla (appsettings.json'da artık default secret YOK - güvenlik gereği)
+cd Accounting.Api
+dotnet user-secrets init
+dotnet user-secrets set "JwtSettings:Secret" "en-az-32-karakterlik-kendi-secret-iniz"
+cd ..
+
 # Database oluştur
 dotnet ef database update
 

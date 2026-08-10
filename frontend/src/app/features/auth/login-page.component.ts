@@ -4,7 +4,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -20,7 +20,6 @@ import { AuthService } from '../../core/services/auth.service';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    RouterModule,
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
@@ -95,11 +94,6 @@ import { AuthService } from '../../core/services/auth.service';
               }
             </button>
           </form>
-
-          <div class="register-link">
-            Hesabınız yok mu? 
-            <a routerLink="/register">Kayıt Ol</a>
-          </div>
         </mat-card-content>
       </mat-card>
     </div>
@@ -154,22 +148,6 @@ import { AuthService } from '../../core/services/auth.service';
       align-items: center;
       justify-content: center;
       gap: 8px;
-    }
-
-    .register-link {
-      margin-top: 16px;
-      text-align: center;
-      color: rgba(0, 0, 0, 0.6);
-      
-      a {
-        color: #667eea;
-        text-decoration: none;
-        font-weight: 500;
-        
-        &:hover {
-          text-decoration: underline;
-        }
-      }
     }
   `]
 })
