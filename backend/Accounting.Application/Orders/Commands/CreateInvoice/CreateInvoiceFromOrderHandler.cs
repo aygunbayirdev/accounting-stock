@@ -1,7 +1,7 @@
 using Accounting.Application.Common.Abstractions;
 using Accounting.Application.Common.Exceptions;
 using Accounting.Application.Common.Extensions;
-using Accounting.Application.Common.Utils;
+using Accounting.Application.Services;
 using Accounting.Domain.Entities;
 using Accounting.Domain.Enums;
 using MediatR;
@@ -47,17 +47,25 @@ public class CreateInvoiceFromOrderHandler : IRequestHandler<CreateInvoiceFromOr
             Type = order.Type,
             DateUtc = DateTime.UtcNow,
             Currency = order.Currency,
-            TotalNet = order.TotalNet,
-            TotalVat = order.TotalVat,
-            TotalGross = order.TotalGross,
-            Balance = order.TotalGross, // Initially unpaid
             InvoiceNumber = $"INV-{order.OrderNumber}",
             CreatedAtUtc = DateTime.UtcNow,
             RowVersion = []
         };
 
+        // OrderLine has no discount/withholding concept, so both are 0 here — but the
+        // per-line totals still go through InvoiceLineCalculator (the same one
+        // CreateInvoiceHandler/UpdateInvoiceHandler use) instead of a third hand-rolled
+        // calculation, so Gross/Net/Vat/GrandTotal keep the same meaning everywhere.
+        // The previous version of this handler put Net+Vat into Gross (which is
+        // documented as Qty*UnitPrice, pre-discount) and never set GrandTotal at all, so
+        // both the line and the invoice header (TotalLineGross) showed 0.00.
+        decimal totalLineGross = 0, totalNet = 0, totalVat = 0;
+
         foreach (var ol in order.Lines)
         {
+            var totals = InvoiceLineCalculator.Calculate(
+                ol.Quantity, ol.UnitPrice, ol.VatRate, discountRate: 0, withholdingRate: 0);
+
             invoice.Lines.Add(new InvoiceLine
             {
                 ItemId = ol.ItemId,
@@ -66,11 +74,22 @@ public class CreateInvoiceFromOrderHandler : IRequestHandler<CreateInvoiceFromOr
                 Qty = ol.Quantity,
                 UnitPrice = ol.UnitPrice,
                 VatRate = ol.VatRate,
-                Net = ol.Total,
-                Vat = DecimalExtensions.RoundAmount(ol.Total * ol.VatRate / 100m),
-                Gross = DecimalExtensions.RoundAmount(ol.Total + (ol.Total * ol.VatRate / 100m))
+                Gross = totals.Gross,
+                Net = totals.Net,
+                Vat = totals.Vat,
+                GrandTotal = totals.GrandTotal
             });
+
+            totalLineGross += totals.Gross;
+            totalNet += totals.Net;
+            totalVat += totals.Vat;
         }
+
+        invoice.TotalLineGross = totalLineGross;
+        invoice.TotalNet = totalNet;
+        invoice.TotalVat = totalVat;
+        invoice.TotalGross = totalNet + totalVat;
+        invoice.Balance = invoice.TotalGross; // Initially unpaid
 
         // Update Order Status
         order.Status = OrderStatus.Invoiced;
@@ -89,8 +108,27 @@ public class CreateInvoiceFromOrderHandler : IRequestHandler<CreateInvoiceFromOr
 
     private async Task AddStockMovementsAsync(Invoice invoice, int branchId, CancellationToken ct)
     {
-        var itemLines = invoice.Lines.Where(l => l.ItemId.HasValue).ToList();
-        if (!itemLines.Any()) return;
+        var candidateItemIds = invoice.Lines
+            .Where(l => l.ItemId.HasValue)
+            .Select(l => l.ItemId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (candidateItemIds.Count == 0) return;
+
+        // Only Inventory-type items get stock movements (Service/Expense/FixedAsset don't
+        // track stock) — the previous version of this method skipped this check entirely,
+        // unlike CreateInvoiceHandler/CreateStockMovementHandler.
+        var inventoryItemIds = await _db.Items
+            .Where(i => candidateItemIds.Contains(i.Id) && i.Type == ItemType.Inventory)
+            .Select(i => i.Id)
+            .ToListAsync(ct);
+
+        var itemLines = invoice.Lines
+            .Where(l => l.ItemId.HasValue && inventoryItemIds.Contains(l.ItemId.Value))
+            .ToList();
+
+        if (itemLines.Count == 0) return;
 
         // Get default warehouse for this branch
         var defaultWarehouse = await _db.Warehouses
@@ -116,8 +154,6 @@ public class CreateInvoiceFromOrderHandler : IRequestHandler<CreateInvoiceFromOr
         };
 
         if (movementType == null) return;
-
-        bool isOutgoing = invoice.Type == InvoiceType.Sales || invoice.Type == InvoiceType.PurchaseReturn;
 
         // Get all item IDs to fetch stocks in one query
         var itemIds = itemLines.Select(l => l.ItemId!.Value).Distinct().ToList();
@@ -163,9 +199,7 @@ public class CreateInvoiceFromOrderHandler : IRequestHandler<CreateInvoiceFromOr
                 existingStocks.Add(stock); // Track for potential duplicate items in lines
             }
 
-            stock.Quantity = isOutgoing
-                ? DecimalExtensions.RoundQuantity(stock.Quantity - line.Qty)
-                : DecimalExtensions.RoundQuantity(stock.Quantity + line.Qty);
+            stock.Quantity = StockQuantityCalculator.ApplyMovement(stock.Quantity, movementType.Value, line.Qty);
         }
     }
 }

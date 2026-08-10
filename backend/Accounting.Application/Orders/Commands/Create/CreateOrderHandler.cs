@@ -15,18 +15,38 @@ public class CreateOrderHandler(IAppDbContext db, ICurrentUserService currentUse
     {
         var branchId = currentUserService.BranchId ?? throw new UnauthorizedAccessException();
 
-        // 1. Generate Order Number
-        var lastOrder = await db.Orders
-            .Where(o => o.BranchId == branchId && o.Type == r.Type)
+        // 1. Generate Order Number.
+        // Prefixed + StartsWith-filtered, same technique as InvoiceNumberService, and the
+        // same prefix family DataSeeder already uses ("SO-2026-0001", "PO-2026-0001").
+        // The previous version generated a bare "000001" and picked "the last order" by
+        // ordering the whole (branch, type) set by OrderNumber string descending — which,
+        // as soon as any seeded "SO-..."/"PO-..." row existed for that branch/type (it
+        // always does), sorted ahead of "000001" lexicographically, failed to parse as a
+        // number, and silently reset nextNum back to 1 on every single order creation. In
+        // practice this meant the second real order for a given branch+type always hit a
+        // duplicate-key constraint violation (500) on the OrderNumber unique index.
+        var orderNumberPrefix = r.Type switch
+        {
+            InvoiceType.Sales => "SO",
+            InvoiceType.Purchase => "PO",
+            InvoiceType.SalesReturn => "SR",
+            InvoiceType.PurchaseReturn => "PR",
+            _ => "OR"
+        };
+        var prefix = $"{orderNumberPrefix}-{DateTime.UtcNow.Year}-";
+
+        var lastOrderNumber = await db.Orders
+            .Where(o => o.BranchId == branchId && o.Type == r.Type && o.OrderNumber.StartsWith(prefix))
             .OrderByDescending(o => o.OrderNumber)
+            .Select(o => o.OrderNumber)
             .FirstOrDefaultAsync(ct);
 
-        long nextNum = 1;
-        if (lastOrder != null && long.TryParse(lastOrder.OrderNumber, out var lastN))
+        var nextSeq = 1;
+        if (lastOrderNumber != null && int.TryParse(lastOrderNumber[prefix.Length..], out var lastSeq))
         {
-            nextNum = lastN + 1;
+            nextSeq = lastSeq + 1;
         }
-        var orderNumber = nextNum.ToString().PadLeft(6, '0');
+        var orderNumber = $"{prefix}{nextSeq:0000}";
 
         // 2. Create Order
         var order = new Order

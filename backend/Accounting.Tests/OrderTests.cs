@@ -94,6 +94,52 @@ public class OrderTests
         Assert.Equal(590, result.TotalGross); // 5 * 100 = 500 Net, +18% VAT = 590
     }
 
+    /// <summary>
+    /// Regression test for a real bug found via manual API testing: CreateOrderHandler
+    /// picked "the last order" by sorting the whole (branch, type) set by the raw
+    /// OrderNumber string descending, then tried to long.TryParse it. DataSeeder seeds
+    /// orders as "SO-2026-0001"/"PO-2026-0001", which both sorts ahead of a bare "000001"
+    /// (lexicographically, 'S'/'P' > '0') and fails to parse as a number — so the
+    /// generator silently fell back to nextNum=1 on every single call, meaning the second
+    /// real order for a given branch+type always tried to reuse the same OrderNumber as
+    /// the first and hit the unique index in real SQL Server (a 500 on the API).
+    /// </summary>
+    [Fact]
+    public async Task CreateOrder_TwiceForSameBranchAndType_ShouldNotReuseOrderNumber()
+    {
+        // Seed data (DataSeeder) always has at least one order per branch/type in this
+        // "SO-{year}-NNNN" family — reproduce that here.
+        var year = DateTime.UtcNow.Year;
+        _db.Orders.Add(new Order
+        {
+            BranchId = 1,
+            ContactId = 1,
+            OrderNumber = $"SO-{year}-0001",
+            Type = InvoiceType.Sales,
+            Status = OrderStatus.Draft,
+            DateUtc = DateTime.UtcNow,
+            RowVersion = Array.Empty<byte>()
+        });
+        await _db.SaveChangesAsync();
+
+        var handler = new CreateOrderHandler(_db, _currentUserServiceMock.Object);
+        var command = new CreateOrderCommand(
+            ContactId: 1,
+            DateUtc: DateTime.UtcNow,
+            Type: InvoiceType.Sales,
+            Currency: "TRY",
+            Description: "Real order 1",
+            Lines: new List<CreateOrderLineDto> { new CreateOrderLineDto(1, "Item A", 1m, 100m, 0) }
+        );
+
+        var first = await handler.Handle(command, CancellationToken.None);
+        var second = await handler.Handle(command with { Description = "Real order 2" }, CancellationToken.None);
+
+        Assert.NotEqual(first.OrderNumber, second.OrderNumber);
+        Assert.Equal($"SO-{year}-0002", first.OrderNumber);
+        Assert.Equal($"SO-{year}-0003", second.OrderNumber);
+    }
+
     [Fact]
     public async Task UpdateOrder_ShouldSucceed()
     {
