@@ -77,11 +77,11 @@ export interface ListCashBankAccountsQuery {
 
 /**
  * Create Cash/Bank Account Body
- * Backend: CreateCashBankAccountCommand
+ * Backend: CreateCashBankAccountCommand — DİKKAT: Code YOK (backend "CBA-{branchId}-{seq}" olarak
+ * otomatik üretiyor), Currency YOK (entity'de her zaman "TRY" default, API'den değiştirilemiyor).
  */
 export interface CreateCashBankAccountBody {
   branchId: number;
-  code: string;
   type: CashBankAccountType;
   name: string;
   iban?: string | null;
@@ -89,13 +89,12 @@ export interface CreateCashBankAccountBody {
 
 /**
  * Update Cash/Bank Account Body
- * Backend: UpdateCashBankAccountCommand
+ * Backend: UpdateCashBankAccountCommand — DİKKAT: BranchId ve Code güncellenemiyor (immutable),
+ * RowVersion alanı "rowVersion" (rowVersionBase64 DEĞİL).
  */
 export interface UpdateCashBankAccountBody {
   id: number;
-  rowVersionBase64: string;         // Required for optimistic concurrency
-  branchId: number;
-  code: string;
+  rowVersion: string;               // Required for optimistic concurrency (backend: UpdateCashBankAccountCommand.RowVersion)
   type: CashBankAccountType;
   name: string;
   iban?: string | null;

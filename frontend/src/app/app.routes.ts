@@ -37,6 +37,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/warehouses/warehouses-page.component').then(m => m.WarehousesPageComponent)
   },
+  {
+    path: 'cash-bank-accounts',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/cash-bank-accounts/cash-bank-accounts-page.component').then(m => m.CashBankAccountsPageComponent)
+  },
 
   // ---- Invoices (özeller önce) ----
   // `data.mode`: InvoicesEditPage bu değeri okuyarak insert/edit/view arasında

@@ -22,21 +22,21 @@ export class CashBankAccountsService {
   private baseUrl = `${environment.apiBaseUrl}/cashbankaccounts`;
 
   /**
-   * POST /api/cash-bank-accounts
+   * POST /api/cashbankaccounts
    */
   create(body: CreateCashBankAccountBody): Observable<CashBankAccountDetailDto> {
     return this.http.post<CashBankAccountDetailDto>(this.baseUrl, body);
   }
 
   /**
-   * GET /api/cash-bank-accounts/{id}
+   * GET /api/cashbankaccounts/{id}
    */
   getById(id: number): Observable<CashBankAccountDetailDto> {
     return this.http.get<CashBankAccountDetailDto>(`${this.baseUrl}/${id}`);
   }
 
   /**
-   * GET /api/cash-bank-accounts
+   * GET /api/cashbankaccounts
    */
   list(query: ListCashBankAccountsQuery = {}): Observable<PagedResult<CashBankAccountListItemDto>> {
     let params = new HttpParams();
@@ -50,18 +50,19 @@ export class CashBankAccountsService {
   }
 
   /**
-   * PUT /api/cash-bank-accounts/{id}
+   * PUT /api/cashbankaccounts/{id}
    */
   update(id: number, body: UpdateCashBankAccountBody): Observable<CashBankAccountDetailDto> {
     return this.http.put<CashBankAccountDetailDto>(`${this.baseUrl}/${id}`, body);
   }
 
   /**
-   * DELETE /api/cash-bank-accounts/{id}
+   * DELETE /api/cashbankaccounts/{id}
+   * Backend: SoftDeleteCashBankAccountCommand(int Id, string RowVersion)
    */
-  delete(id: number, rowVersionBase64: string): Observable<void> {
+  delete(id: number, rowVersion: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`, {
-      body: { id, rowVersionBase64 }
+      body: { id, rowVersion }
     });
   }
 }
