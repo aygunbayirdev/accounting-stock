@@ -19,7 +19,7 @@ import { PagedResult } from '../models/paged-result';
 @Injectable({ providedIn: 'root' })
 export class CashBankAccountsService {
   private http = inject(HttpClient);
-  private baseUrl = `${environment.apiBaseUrl}/cash-bank-accounts`;
+  private baseUrl = `${environment.apiBaseUrl}/cashbankaccounts`;
 
   /**
    * POST /api/cash-bank-accounts
@@ -42,7 +42,8 @@ export class CashBankAccountsService {
     let params = new HttpParams();
     if (query.type != null) params = params.set('type', query.type.toString());
     if (query.branchId != null) params = params.set('branchId', query.branchId.toString());
-    if (query.pageNumber) params = params.set('page', query.pageNumber.toString());
+    if (query.search) params = params.set('search', query.search);
+    if (query.pageNumber) params = params.set('pageNumber', query.pageNumber.toString());
     if (query.pageSize) params = params.set('pageSize', query.pageSize.toString());
     if (query.sort) params = params.set('sort', query.sort);
     return this.http.get<PagedResult<CashBankAccountListItemDto>>(this.baseUrl, { params });

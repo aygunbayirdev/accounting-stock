@@ -31,6 +31,8 @@ export interface CashBankAccountListItemDto {
   type: string;                     // "Cash" | "Bank"
   name: string;
   iban?: string | null;
+  currency: string;
+  balance: string;                  // F2 - Money string
   createdAtUtc: string;             // ISO-8601 UTC
 }
 
@@ -45,6 +47,8 @@ export interface CashBankAccountDetailDto {
   type: string;                     // "Cash" | "Bank"
   name: string;
   iban?: string | null;
+  currency: string;
+  balance: string;                  // F2 - Money string
   rowVersion: string;               // Base64
   createdAtUtc: string;             // ISO-8601 UTC
   updatedAtUtc?: string | null;     // ISO-8601 UTC
@@ -64,6 +68,7 @@ export interface ListCashBankAccountsQuery {
   sort?: string;                    // "name:asc", "code:desc"
   type?: CashBankAccountType | null;
   branchId?: number | null;
+  search?: string | null;
 }
 
 // ============================================================================

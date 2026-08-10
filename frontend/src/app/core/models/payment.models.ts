@@ -22,6 +22,10 @@ export enum PaymentDirectionFilter {
   Out = 2
 }
 
+// Backend MustBeValidCurrency whitelist (CreatePaymentValidator / UpdatePaymentValidator)
+export type PaymentCurrency = 'TRY' | 'USD' | 'EUR' | 'GBP';
+export const PAYMENT_CURRENCIES: PaymentCurrency[] = ['TRY', 'USD', 'EUR', 'GBP'];
+
 // ============================================================================
 // DTOs - READ (GET/LIST)
 // ============================================================================
@@ -97,26 +101,26 @@ export interface CreatePaymentBody {
   contactId?: number | null;
   linkedInvoiceId?: number | null;
   dateUtc: string;                  // ISO-8601 UTC
-  direction: PaymentDirection | PaymentDirectionStr;
+  direction: PaymentDirection;      // SAYI olarak gönderilmeli (JsonStringEnumConverter yok)
   amount: string;                   // Money string (dot separator!)
-  currency: string;
+  currency: PaymentCurrency;
   description?: string | null;
 }
 
 /**
  * Update Payment Body
- * Backend: UpdatePaymentCommand
+ * Backend: UpdatePaymentCommand — RowVersion alanı "rowVersion" (rowVersionBase64 DEĞİL).
  */
 export interface UpdatePaymentBody {
   id: number;
-  rowVersionBase64: string;         // Required for optimistic concurrency
+  rowVersion: string;               // Required for optimistic concurrency (backend: UpdatePaymentCommand.RowVersion)
   accountId: number;
   contactId?: number | null;
   linkedInvoiceId?: number | null;
   dateUtc: string;                  // ISO-8601 UTC
-  direction: PaymentDirection | PaymentDirectionStr;
+  direction: PaymentDirection;
   amount: string;                   // Money string (dot separator!)
-  currency: string;
+  currency: PaymentCurrency;
   description?: string | null;
 }
 
