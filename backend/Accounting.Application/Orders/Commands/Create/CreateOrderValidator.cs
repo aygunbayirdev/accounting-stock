@@ -58,9 +58,6 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
 
     private async Task<bool> ContactIsValidForBranchAsync(int contactId, CancellationToken ct)
     {
-        if (!_currentUserService.BranchId.HasValue) return false;
-        var currentBranchId = _currentUserService.BranchId.Value;
-
         var contact = await _db.Contacts
             .AsNoTracking()
             .Where(c => c.Id == contactId && !c.IsDeleted)
@@ -69,6 +66,10 @@ public class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
 
         if (contact == null) return false;
 
-        return contact.BranchId == currentBranchId;
+        // Admin/HQ bypass — same rule ApplyBranchFilter applies everywhere else.
+        if (_currentUserService.IsAdmin || _currentUserService.IsHeadquarters) return true;
+
+        if (!_currentUserService.BranchId.HasValue) return false;
+        return contact.BranchId == _currentUserService.BranchId.Value;
     }
 }

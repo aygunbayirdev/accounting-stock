@@ -14,18 +14,15 @@ public sealed class UpdateInvoiceHandler : IRequestHandler<UpdateInvoiceCommand,
 {
     private readonly IAppDbContext _ctx;
     private readonly IInvoiceBalanceService _balanceService;
-    private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUserService;
 
     public UpdateInvoiceHandler(
         IAppDbContext ctx,
         IInvoiceBalanceService balanceService,
-        IMediator mediator,
         ICurrentUserService currentUserService)
     {
         _ctx = ctx;
         _balanceService = balanceService;
-        _mediator = mediator;
         _currentUserService = currentUserService;
     }
 
@@ -265,15 +262,48 @@ public sealed class UpdateInvoiceHandler : IRequestHandler<UpdateInvoiceCommand,
         Dictionary<int, dynamic> itemsMap,
         CancellationToken ct)
     {
-        // Mevcut hareketleri bul ve sil (Reset)
+        // Mevcut hareketleri bul. Önce stoktaki eski etkilerini geri alıyoruz, sonra
+        // soft-delete ediyoruz — eskiden sadece soft-delete ediliyordu ve Stock.Quantity
+        // hiç geri alınmıyordu, bu yüzden bir faturanın miktarı değiştirildiğinde eski
+        // düşüm/artışın üstüne yenisi binip stoğu bozuyordu (örn. 5 adet düşülmüşken 3'e
+        // güncellenince toplam 8 adet düşüyordu, net 3 değil).
+        //
+        // Ayrıca artık CreateStockMovementCommand'ı mediator ile göndermiyoruz: o handler
+        // depoyu ÇAĞIRANIN kendi şubesine göre arıyordu (invoice.BranchId'ye göre değil),
+        // bu da bir admin/HQ kullanıcısı başka bir şubenin faturasını güncellediğinde
+        // "Warehouse bulunamadı" hatasına yol açıyordu. CreateInvoiceHandler ve
+        // CreateInvoiceFromOrderHandler'daki gibi doğrudan invoice.BranchId'ye göre,
+        // StockQuantityCalculator ile, tek sorguda/tek save'de uyguluyoruz.
         var existingMovements = await _ctx.StockMovements
             .Where(m => m.InvoiceId == invoice.Id && !m.IsDeleted)
             .ToListAsync(ct);
 
-        foreach (var move in existingMovements)
+        var stocksByKey = new Dictionary<(int WarehouseId, int ItemId), Stock>();
+
+        if (existingMovements.Count > 0)
         {
-            move.IsDeleted = true;
-            move.DeletedAtUtc = DateTime.UtcNow;
+            var warehouseIds = existingMovements.Select(m => m.WarehouseId).Distinct().ToList();
+            var reverseItemIds = existingMovements.Select(m => m.ItemId).Distinct().ToList();
+
+            var reverseStocks = await _ctx.Stocks
+                .Where(s => s.BranchId == invoice.BranchId
+                    && warehouseIds.Contains(s.WarehouseId)
+                    && reverseItemIds.Contains(s.ItemId))
+                .ToListAsync(ct);
+
+            foreach (var s in reverseStocks) stocksByKey[(s.WarehouseId, s.ItemId)] = s;
+
+            foreach (var move in existingMovements)
+            {
+                if (stocksByKey.TryGetValue((move.WarehouseId, move.ItemId), out var stock))
+                {
+                    var reverseSignedQty = StockQuantityCalculator.IsIncoming(move.Type) ? -move.Quantity : move.Quantity;
+                    stock.Quantity = DecimalExtensions.RoundQuantity(stock.Quantity + reverseSignedQty);
+                }
+
+                move.IsDeleted = true;
+                move.DeletedAtUtc = DateTime.UtcNow;
+            }
         }
 
         // Hareket tipi belirle
@@ -286,54 +316,98 @@ public sealed class UpdateInvoiceHandler : IRequestHandler<UpdateInvoiceCommand,
             _ => null
         };
 
-        if (movementType == null) return;
-
-        // Varsayılan depoyu bul
-        var defaultWarehouse = await _ctx.Warehouses
-            .Where(w => w.BranchId == invoice.BranchId && w.IsDefault && !w.IsDeleted)
-            .Select(w => new { w.Id })
-            .FirstOrDefaultAsync(ct);
-
-        if (defaultWarehouse == null)
+        if (movementType != null)
         {
-            defaultWarehouse = await _ctx.Warehouses
-                .Where(w => w.BranchId == invoice.BranchId && !w.IsDeleted)
-                .OrderBy(w => w.Id)
-                .Select(w => new { w.Id })
-                .FirstOrDefaultAsync(ct);
-        }
+            // Stok hareketi gerektiren (Inventory tipinde) satırlar — depo aramasından
+            // ÖNCE hesaplanır: sadece Hizmet/Masraf/Demirbaş kalemi içeren bir faturada,
+            // o şubede hiç depo tanımlı olmasa bile hata verilmemeli.
+            var eligibleLines = invoice.Lines
+                .Where(l => l.ItemId != null && !l.IsDeleted && l.Qty != 0
+                    && itemsMap.TryGetValue(l.ItemId.Value, out var it)
+                    && (ItemType)it.type == ItemType.Inventory)
+                .ToList();
 
-        if (defaultWarehouse == null)
-        {
-            throw new BusinessRuleException(
-                $"Şube (BranchId: {invoice.BranchId}) için tanımlı depo bulunamadı.");
-        }
-
-        // Yeni hareketler oluştur
-        foreach (var line in invoice.Lines)
-        {
-            if (line.ItemId == null || line.IsDeleted) continue;
-
-            // Sadece Inventory tipindeki item'lar için stok hareketi
-            if (itemsMap.TryGetValue(line.ItemId.Value, out var item))
+            if (eligibleLines.Count > 0)
             {
-                if ((ItemType)item.type != ItemType.Inventory) continue;
+                var defaultWarehouse = await _ctx.Warehouses
+                    .Where(w => w.BranchId == invoice.BranchId && w.IsDefault && !w.IsDeleted)
+                    .Select(w => new { w.Id })
+                    .FirstOrDefaultAsync(ct);
+
+                if (defaultWarehouse == null)
+                {
+                    defaultWarehouse = await _ctx.Warehouses
+                        .Where(w => w.BranchId == invoice.BranchId && !w.IsDeleted)
+                        .OrderBy(w => w.Id)
+                        .Select(w => new { w.Id })
+                        .FirstOrDefaultAsync(ct);
+                }
+
+                if (defaultWarehouse == null)
+                {
+                    throw new BusinessRuleException(
+                        $"Şube (BranchId: {invoice.BranchId}) için tanımlı depo bulunamadı.");
+                }
+
+                var neededItemIds = eligibleLines.Select(l => l.ItemId!.Value).Distinct().ToList();
+                var missingItemIds = neededItemIds
+                    .Where(id => !stocksByKey.ContainsKey((defaultWarehouse.Id, id)))
+                    .ToList();
+
+                if (missingItemIds.Count > 0)
+                {
+                    var moreStocks = await _ctx.Stocks
+                        .Where(s => s.BranchId == invoice.BranchId
+                            && s.WarehouseId == defaultWarehouse.Id
+                            && missingItemIds.Contains(s.ItemId))
+                        .ToListAsync(ct);
+
+                    foreach (var s in moreStocks) stocksByKey[(s.WarehouseId, s.ItemId)] = s;
+                }
+
+                foreach (var line in eligibleLines)
+                {
+                    var itemId = line.ItemId!.Value;
+                    var qty = DecimalExtensions.RoundQuantity(line.Qty);
+                    var key = (defaultWarehouse.Id, itemId);
+
+                    if (!stocksByKey.TryGetValue(key, out var stock))
+                    {
+                        stock = new Stock
+                        {
+                            BranchId = invoice.BranchId,
+                            WarehouseId = defaultWarehouse.Id,
+                            ItemId = itemId,
+                            Quantity = 0m
+                        };
+                        _ctx.Stocks.Add(stock);
+                        stocksByKey[key] = stock;
+                    }
+
+                    stock.Quantity = StockQuantityCalculator.ApplyMovement(stock.Quantity, movementType.Value, qty);
+
+                    _ctx.StockMovements.Add(new StockMovement
+                    {
+                        BranchId = invoice.BranchId,
+                        WarehouseId = defaultWarehouse.Id,
+                        ItemId = itemId,
+                        InvoiceId = invoice.Id,
+                        Type = movementType.Value,
+                        Quantity = qty,
+                        TransactionDateUtc = invoice.DateUtc,
+                        Note = null
+                    });
+                }
             }
+        }
 
-            var absQty = line.Qty;
-            if (absQty == 0) continue;
-
-            var cmd = new Accounting.Application.StockMovements.Commands.Create.CreateStockMovementCommand(
-                WarehouseId: defaultWarehouse.Id,
-                ItemId: line.ItemId.Value,
-                Type: movementType.Value,
-                Quantity: DecimalExtensions.RoundQuantity(absQty),
-                TransactionDateUtc: invoice.DateUtc,
-                Note: null,
-                InvoiceId: invoice.Id
-            );
-
-            await _mediator.Send(cmd, ct);
+        try
+        {
+            await _ctx.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConcurrencyConflictException("Stok güncellenirken eşzamanlılık hatası oluştu. Lütfen tekrar deneyin.");
         }
     }
 }

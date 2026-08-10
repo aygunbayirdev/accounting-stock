@@ -185,8 +185,11 @@ type LineRow = {
 export class InvoiceFormComponent {
   @Input() mode: InvoiceMode = 'insert';
 
+  private _id?: number;
+
   @Input() set value(v: InvoiceFormValue | null) {
     if (!v) return;
+    this._id = v.id;
     // header
     this.form.patchValue({
       rowVersionBase64: v.rowVersionBase64 ?? '',
@@ -349,18 +352,18 @@ export class InvoiceFormComponent {
         contactId: h.contactId!,
         dateUtc: this.localToUtcIso(h.dateUtc),
         currency: h.currency,
-        type: h.type,
+        type: this.typeToNumber(h.type),
         lines: createLines as any
       } as any);
     } else {
       this.saveUpdate.emit({
-        id: (this as any).id, // container (EditPage) set ediyor
+        id: this._id!,
         rowVersionBase64: h.rowVersionBase64,
         branchId: h.branchId!,                              // NEW
         contactId: h.contactId!,
         dateUtc: this.localToUtcIso(h.dateUtc),
         currency: h.currency,
-        type: h.type,
+        type: this.typeToNumber(h.type),
         lines: bodyLines
       });
     }
@@ -380,6 +383,21 @@ export class InvoiceFormComponent {
   localToUtcIso(localStr: string): string {
     // "YYYY-MM-DDTHH:mm" (tz'siz yerel) -> UTC ISO "....Z"
     return new Date(localStr).toISOString();
+  }
+
+  // Backend'e InvoiceType her zaman sayı olarak gitmeli (System.Text.Json enum'ları
+  // varsayılan olarak sayı bekler, JsonStringEnumConverter kayıtlı değil) — normalizeType'ın
+  // tam tersi. Bunsuz form 'Sales' gibi bir string gönderiyordu ve backend bunu
+  // InvoiceType'a çeviremediği için hem oluşturma hem güncelleme her zaman 400 dönüyordu.
+  private typeToNumber(val: InvoiceTypeStr | number): number {
+    if (typeof val === 'number') return val;
+    switch (val) {
+      case 'Sales': return 1;
+      case 'Purchase': return 2;
+      case 'SalesReturn': return 3;
+      case 'PurchaseReturn': return 4;
+      default: return 1;
+    }
   }
 
   normalizeType(val: unknown): InvoiceTypeStr {

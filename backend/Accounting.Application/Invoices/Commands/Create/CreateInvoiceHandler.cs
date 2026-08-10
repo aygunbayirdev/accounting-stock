@@ -206,6 +206,18 @@ public class CreateInvoiceHandler
 
         if (movementType == null) return;
 
+        // Stok hareketi gerektiren (Inventory tipinde, miktarı sıfırdan farklı) satırlar.
+        // Bu kontrol depo aramasından ÖNCE yapılır: sadece Hizmet/Masraf/Demirbaş kalemi
+        // içeren bir faturada, o şubede hiç depo tanımlı olmasa bile hata verilmemeli.
+        var eligibleLines = invoice.Lines
+            .Where(l => l.ItemId != null
+                && l.Qty != 0
+                && itemsMap.TryGetValue(l.ItemId.Value, out var item)
+                && (ItemType)item.Type == ItemType.Inventory)
+            .ToList();
+
+        if (eligibleLines.Count == 0) return;
+
         // Varsayılan depoyu bul
         var defaultWarehouse = await _db.Warehouses
             .Where(w => w.BranchId == invoice.BranchId && w.IsDefault && !w.IsDeleted)
@@ -226,16 +238,6 @@ public class CreateInvoiceHandler
             throw new BusinessRuleException(
                 $"Şube (BranchId: {invoice.BranchId}) için tanımlı depo bulunamadı.");
         }
-
-        // Stok hareketi gerektiren (Inventory tipinde, miktarı sıfırdan farklı) satırlar
-        var eligibleLines = invoice.Lines
-            .Where(l => l.ItemId != null
-                && l.Qty != 0
-                && itemsMap.TryGetValue(l.ItemId.Value, out var item)
-                && (ItemType)item.Type == ItemType.Inventory)
-            .ToList();
-
-        if (eligibleLines.Count == 0) return;
 
         // Tüm satırların stok anlık görüntülerini tek sorguda çek (satır başına
         // ayrı mediator dispatch + ayrı SaveChangesAsync yerine).

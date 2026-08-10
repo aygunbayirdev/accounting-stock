@@ -72,9 +72,6 @@ export class InvoicesEditPage {
           }))
         };
 
-        // child component’ın update save’inde body'ye id lazım:
-        // (basit yöntem) referans üzerinden set edeceğiz → aşağıdaki trick:
-        (InvoiceFormComponent as any).prototype.id = this.id;
       },
       error: _ => this.snack.open('Fatura bulunamadı.', 'Kapat', { duration: 3000 })
     });

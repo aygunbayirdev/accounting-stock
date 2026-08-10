@@ -79,29 +79,35 @@ public class CreatePaymentValidator : AbstractValidator<CreatePaymentCommand>
 
     private async Task<bool> AccountBelongsToBranchAsync(int accountId, CancellationToken ct)
     {
-        if (!_currentUserService.BranchId.HasValue) return false;
-        var currentBranchId = _currentUserService.BranchId.Value;
-
         var account = await _db.CashBankAccounts
             .AsNoTracking()
             .Where(a => a.Id == accountId && !a.IsDeleted)
             .Select(a => new { a.BranchId })
             .FirstOrDefaultAsync(ct);
 
-        return account != null && account.BranchId == currentBranchId;
+        if (account == null) return false;
+
+        // Admin/HQ bypass — same rule ApplyBranchFilter applies everywhere else.
+        if (_currentUserService.IsAdmin || _currentUserService.IsHeadquarters) return true;
+
+        if (!_currentUserService.BranchId.HasValue) return false;
+        return account.BranchId == _currentUserService.BranchId.Value;
     }
 
     private async Task<bool> InvoiceBelongsToBranchAsync(int invoiceId, CancellationToken ct)
     {
-        if (!_currentUserService.BranchId.HasValue) return false;
-        var currentBranchId = _currentUserService.BranchId.Value;
-
         var invoice = await _db.Invoices
             .AsNoTracking()
             .Where(i => i.Id == invoiceId && !i.IsDeleted)
             .Select(i => new { i.BranchId })
             .FirstOrDefaultAsync(ct);
 
-        return invoice != null && invoice.BranchId == currentBranchId;
+        if (invoice == null) return false;
+
+        // Admin/HQ bypass — same rule ApplyBranchFilter applies everywhere else.
+        if (_currentUserService.IsAdmin || _currentUserService.IsHeadquarters) return true;
+
+        if (!_currentUserService.BranchId.HasValue) return false;
+        return invoice.BranchId == _currentUserService.BranchId.Value;
     }
 }

@@ -36,10 +36,13 @@ public class CreateChequeValidator : AbstractValidator<CreateChequeCommand>
 
     private async Task<bool> ContactBelongsToSameBranchAsync(CreateChequeCommand cmd, CancellationToken ct)
     {
+        if (!cmd.ContactId.HasValue) return true;
+
+        // Admin/HQ bypass — same rule ApplyBranchFilter applies everywhere else.
+        if (_currentUserService.IsAdmin || _currentUserService.IsHeadquarters) return true;
+
         if (!_currentUserService.BranchId.HasValue) return false;
         var currentBranchId = _currentUserService.BranchId.Value;
-
-        if (!cmd.ContactId.HasValue) return true;
 
         var contact = await _db.Contacts
             .AsNoTracking()

@@ -82,6 +82,11 @@ public class CreateInvoiceValidator : AbstractValidator<CreateInvoiceCommand>
 
     private async Task<bool> ContactBelongsToSameBranchAsync(CreateInvoiceCommand cmd, CancellationToken ct)
     {
+        // Admin/HQ users can invoice any branch's contact, same bypass ApplyBranchFilter
+        // applies everywhere else — without this, an admin could never create an invoice
+        // for a contact outside their own "home" branch.
+        if (_currentUserService.IsAdmin || _currentUserService.IsHeadquarters) return true;
+
         if (!_currentUserService.BranchId.HasValue) return false;
         var currentBranchId = _currentUserService.BranchId.Value;
 

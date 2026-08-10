@@ -2,6 +2,7 @@ using Accounting.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Accounting.Tests.Integration;
@@ -48,7 +49,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 d => d.ServiceType == typeof(DbContextOptions<AppDbContext>));
             if (descriptor != null) services.Remove(descriptor);
 
-            services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(_dbName));
+            // Several handlers open an EF Core transaction (e.g. CreateInvoiceHandler);
+            // InMemory doesn't support real transactions and throws unless that specific
+            // warning is downgraded — the same ConfigureWarnings every handler-level unit
+            // test in this project already applies.
+            services.AddDbContext<AppDbContext>(options => options
+                .UseInMemoryDatabase(_dbName)
+                .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning)));
         });
     }
 

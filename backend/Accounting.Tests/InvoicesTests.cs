@@ -22,7 +22,6 @@ namespace Accounting.Tests;
 public class InvoicesTests
 {
     private readonly DbContextOptions<AppDbContext> _options;
-    private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<IStockService> _stockServiceMock;
     private readonly Mock<IInvoiceNumberService> _invoiceNumberServiceMock;
     private readonly Mock<IInvoiceBalanceService> _balanceServiceMock;
@@ -34,7 +33,6 @@ public class InvoicesTests
             .ConfigureWarnings(x => x.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
 
-        _mediatorMock = new Mock<IMediator>();
         _stockServiceMock = new Mock<IStockService>();
         _invoiceNumberServiceMock = new Mock<IInvoiceNumberService>();
         _balanceServiceMock = new Mock<IInvoiceBalanceService>();
@@ -108,7 +106,10 @@ public class InvoicesTests
         db.Contacts.Add(new Contact { Id = 1, BranchId = 1, Name = "Test Customer", Code = "C-01", IsCustomer = true });
         db.Items.Add(new Item { Id = 10, Name = "Item A", Code = "I-01", Unit = "adet", VatRate = 20, SalesPrice = 100m });
         db.Warehouses.Add(new Warehouse { Id = 1, BranchId = 1, Name = "Main Warehouse", Code = "WH-01", IsDefault = true, RowVersion = Array.Empty<byte>() });
-        
+        // Item defaults to ItemType.Inventory, and the Sales line below now really applies
+        // a stock movement (SyncStockMovements no longer routes through a mocked mediator).
+        db.Stocks.Add(new Stock { BranchId = 1, WarehouseId = 1, ItemId = 10, Quantity = 100m, RowVersion = Array.Empty<byte>() });
+
         var invoice = new Invoice
         {
             BranchId = 1,
@@ -121,7 +122,7 @@ public class InvoicesTests
         db.Invoices.Add(invoice);
         await db.SaveChangesAsync();
 
-        var handler = new UpdateInvoiceHandler(db, _balanceServiceMock.Object, _mediatorMock.Object, userService);
+        var handler = new UpdateInvoiceHandler(db, _balanceServiceMock.Object, userService);
 
         var command = new UpdateInvoiceCommand(
             Id: invoice.Id,
@@ -145,6 +146,74 @@ public class InvoicesTests
 
         Assert.Equal(1, result.Lines.Count); // use Lines instead of Items
         Assert.Equal(200.00m, result.TotalLineGross); // 2 * 100
+    }
+
+    /// <summary>
+    /// Regression test for a real bug found via manual UI testing: editing an invoice's
+    /// line quantity applied the new stock movement on top of the old one instead of
+    /// replacing it, because SyncStockMovements soft-deleted the old StockMovement records
+    /// without ever reversing their effect on Stock.Quantity. Creating a Sales invoice for
+    /// qty 5 then editing it down to qty 3 used to leave the stock short by 8, not 3.
+    /// </summary>
+    [Fact]
+    public async Task UpdateInvoice_ChangingLineQuantity_ShouldNetAdjustStock_NotStack()
+    {
+        var userService = new FakeCurrentUserService(branchId: 1);
+        var audit = new AuditSaveChangesInterceptor(userService);
+        using var db = new AppDbContext(_options, audit, userService);
+
+        db.Branches.Add(new Branch { Id = 1, Name = "Main Branch", Code = "BR-01" });
+        db.Contacts.Add(new Contact { Id = 1, BranchId = 1, Name = "Test Customer", Code = "C-01", IsCustomer = true });
+        db.Items.Add(new Item { Id = 10, Name = "Item A", Code = "I-01", Unit = "adet", VatRate = 20, SalesPrice = 100m });
+        db.Warehouses.Add(new Warehouse { Id = 1, BranchId = 1, Name = "Main Warehouse", Code = "WH-01", IsDefault = true, RowVersion = Array.Empty<byte>() });
+        db.Stocks.Add(new Stock { BranchId = 1, WarehouseId = 1, ItemId = 10, Quantity = 100m, RowVersion = Array.Empty<byte>() });
+        await db.SaveChangesAsync();
+
+        _invoiceNumberServiceMock
+            .Setup(x => x.GenerateNextAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync("INV-STOCK-001");
+        _stockServiceMock
+            .Setup(x => x.ValidateBatchStockAvailabilityAsync(It.IsAny<Dictionary<int, decimal>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        var createHandler = new CreateInvoiceHandler(db, _stockServiceMock.Object, userService, _invoiceNumberServiceMock.Object);
+        var created = await createHandler.Handle(new CreateInvoiceCommand(
+            ContactId: 1,
+            DateUtc: DateTime.UtcNow,
+            Currency: "TRY",
+            Type: InvoiceType.Sales,
+            DocumentType: DocumentType.Invoice,
+            WaybillNumber: null,
+            WaybillDateUtc: null,
+            PaymentDueDateUtc: null,
+            Lines: new List<CreateInvoiceLineDto> { new CreateInvoiceLineDto(10, 5.00m, 100.00m, 20, 0.00m, 0) }
+        ), CancellationToken.None);
+
+        var stockAfterCreate = await db.Stocks.AsNoTracking().FirstAsync(s => s.ItemId == 10);
+        Assert.Equal(95m, stockAfterCreate.Quantity); // 100 - 5
+
+        var invoiceAfterCreate = await db.Invoices.Include(i => i.Lines).FirstAsync(i => i.Id == created.Id);
+        var lineId = invoiceAfterCreate.Lines.Single().Id;
+
+        var updateHandler = new UpdateInvoiceHandler(db, _balanceServiceMock.Object, userService);
+        await updateHandler.Handle(new UpdateInvoiceCommand(
+            Id: created.Id,
+            RowVersionBase64: Convert.ToBase64String(invoiceAfterCreate.RowVersion),
+            DateUtc: invoiceAfterCreate.DateUtc,
+            Currency: "TRY",
+            ContactId: 1,
+            Type: InvoiceType.Sales,
+            DocumentType: DocumentType.Invoice,
+            WaybillNumber: null,
+            WaybillDateUtc: null,
+            PaymentDueDateUtc: null,
+            Lines: new List<UpdateInvoiceLineDto> { new UpdateInvoiceLineDto(lineId, 10, 3.00m, 100.00m, 20, 0.00m, 0) }
+        ), CancellationToken.None);
+
+        var stockAfterUpdate = await db.Stocks.AsNoTracking().FirstAsync(s => s.ItemId == 10);
+        // Net effect of the invoice should now be -3 from the original 100, i.e. 97 —
+        // not 100 - 5 - 3 = 92, which is what the bug produced.
+        Assert.Equal(97m, stockAfterUpdate.Quantity);
     }
 
     [Fact]
