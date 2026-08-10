@@ -42,13 +42,14 @@ Küçük/orta ölçekli maddeler ve (canlı testte ortaya çıkan) iki kritik bu
 - [ ] Route pattern / `{id:int}` constraint / RowVersion body-vs-query tutarsızlıklarının tam taranması (ERTELENDİ — 18 controller'ı tek tek gözden geçirmek gerekiyor, BranchesController'daki namespace dışında dokunulmadı).
 - [ ] Hata mesajı dili tutarlılığı (Türkçe/İngilizce karışık) (ERTELENDİ — büyük string-literal taraması gerektiriyor, ayrı bir oturumda yapılmalı).
 
-## Faz 2 — Backend Test Kapsamının Genişletilmesi
+## Faz 2 — Backend Test Kapsamının Genişletilmesi (kısmen tamamlandı, 2026-08-10)
 
-- [ ] `Accounting.Tests` projesine `Microsoft.AspNetCore.Mvc.Testing` + `Accounting.Api` referansı ekleyerek gerçek `WebApplicationFactory` tabanlı entegrasyon testleri kurulabilir hale getir (şu an yapısal olarak imkansız).
-- [ ] En az birkaç controller için uçtan uca entegrasyon testi yaz (auth → JWT al → korumalı endpoint çağır → beklenen sonuç), özellikle `ExceptionToProblemDetailsMiddleware`'in 6 dalını kapsayan testler.
-- [ ] Faz 0'da düzeltilen iki branch-isolation açığı için regresyon testi yaz (başka şubenin stok/stok hareketi kaydına 403/404 dönüldüğünü doğrula).
-- [x] ~~`AuthController.Register`'ın yetkilendirme/rol atama davranışını test et~~ — madde geçersizleşti, Faz 0'da endpoint tamamen kaldırıldı.
+- [x] `Accounting.Tests` projesine `Microsoft.AspNetCore.Mvc.Testing` + `Accounting.Api` referansı eklendi. `Integration/CustomWebApplicationFactory.cs`: gerçek `Program`'ı (`Testing` ortamında) ayağa kaldırıyor, `AppDbContext`'i EF Core InMemory ile değiştiriyor, migration+seed'i atlıyor (`Program.cs`'e `!app.Environment.IsEnvironment("Testing")` guard'ı eklendi — InMemory provider `MigrateAsync` desteklemiyor). `WebApplicationFactory<Program>` çalışabilsin diye `Program.cs`'in sonuna `public partial class Program {}` eklendi (top-level statement'ların örtük ürettiği sınıfı dışarıdan erişilebilir yapıyor). JWT secret gibi ayarlar `Environment.SetEnvironmentVariable` ile veriliyor (config-injection zamanlaması `builder.Build()` öncesi okunan değerlere yetişmiyor, ortam değişkenleri senkron okunduğu için güvenilir tek yol bu oldu).
+- [x] İlk entegrasyon testleri yazıldı (`Integration/AuthEndpointsIntegrationTests.cs`, `Integration/BranchIsolationIntegrationTests.cs`): gerçek login akışı, `register` 404, yanlış şifre, token'sız 401 — ve **Faz 0'da düzeltilen iki branch-isolation açığı için gerçek HTTP seviyesinde regresyon testi**: başka şubenin stok/stok hareketi kaydına gerçek bir JWT ile 404 döndüğü doğrulanıyor (önceki unit testler bunu hiç test etmiyordu, çünkü handler'ları doğrudan çağırıyorlardı — branch filter'ın asıl riski HTTP+auth katmanında).
+- [ ] `ExceptionToProblemDetailsMiddleware`'in 6 dalını kapsayan entegrasyon testleri (ERTELENDİ — daha fazla controller/senaryo gerektiriyor, sonraki bir oturuma bırakıldı).
+- [x] ~~`AuthController.Register`'ın yetkilendirme/rol atama davranışını test et~~ — madde geçersizleşti, Faz 0'da endpoint tamamen kaldırıldı; kaldırıldığını doğrulayan `Register_Endpoint_ShouldNotExist` testi eklendi.
 - [x] Stok tutarlılığı düzeltmesi (Faz 1) için: manuel/açılış stok düzeltmesi sonrası `StockService`'in doğru müsaitlik döndürdüğünü doğrulayan test eklendi (`StockServiceTests.ValidateStockAvailability_ShouldSucceed_ForStockWithNoPurchaseInvoice`) — canlıda bulunan gerçek bug'ı kanıtlıyor.
+- [ ] Kalan controller'lar için daha fazla entegrasyon testi (invoice/order akışları uçtan uca) — genişletilebilir, şimdilik altyapı + en kritik ikisi kuruldu.
 - [ ] `GetStockByIdHandler`/`GetStockMovementByIdHandler`'daki branch-isolation düzeltmesi için özel bir regresyon testi yok — sadece `WebApplicationFactory` entegrasyon testleri kurulunca (yukarıdaki madde) eklenmeli, çünkü asıl risk HTTP katmanında (başka kullanıcı token'ıyla 403/404 dönmesi).
 
 ## Faz 3 — Frontend: Bug Düzeltmeleri & Altyapı Temizliği

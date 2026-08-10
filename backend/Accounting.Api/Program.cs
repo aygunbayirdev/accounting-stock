@@ -167,8 +167,12 @@ app.MapHealthChecks("/health");
 // Seeding:Enabled defaults to true so the docker-compose demo keeps working
 // out of the box; set it to false via config/env for a deployment that
 // should never get the demo admin/branch/role data.
-using (var scope = app.Services.CreateScope())
+// Skipped entirely under the "Testing" environment (WebApplicationFactory-based
+// integration tests): Database.MigrateAsync() only works against a relational
+// provider, and the test host swaps in the EF Core InMemory provider instead.
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
@@ -183,3 +187,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// Makes the top-level-statement Program class accessible to
+// WebApplicationFactory<Program> in the integration test project.
+public partial class Program { }
