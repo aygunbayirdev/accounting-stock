@@ -59,10 +59,11 @@ export class ItemsService {
 
   /**
    * DELETE /api/items/{id}
+   * Backend: SoftDeleteItemCommand(int Id, string RowVersion)
    */
-  delete(id: number, rowVersionBase64: string): Observable<void> {
+  delete(id: number, rowVersion: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`, {
-      body: { id, rowVersionBase64 }
+      body: { id, rowVersion }
     });
   }
 }

@@ -1,6 +1,6 @@
 /**
- * Item Models (Ürün/Hizmet Kartları)
- * 
+ * Item Models (Ürün/Hizmet/Gider/Demirbaş Kartları)
+ *
  * Backend DTO'larıyla senkronize.
  * @see Accounting.Application.Items.Queries.Dto.ItemDtos
  */
@@ -11,10 +11,17 @@
 
 export enum ItemType {
   Inventory = 1,    // Stoklu ürün (fiziksel)
-  Service = 2       // Hizmet (stok takibi yok)
+  Service = 2,       // Hizmet (stok takibi yok)
+  Expense = 3,        // Gider
+  FixedAsset = 4       // Demirbaş
 }
 
-export type ItemTypeStr = 'Inventory' | 'Service';
+export const ItemTypeNames: Record<ItemType, string> = {
+  [ItemType.Inventory]: 'Stoklu Ürün',
+  [ItemType.Service]: 'Hizmet',
+  [ItemType.Expense]: 'Gider',
+  [ItemType.FixedAsset]: 'Demirbaş'
+};
 
 // ============================================================================
 // DTOs - READ (GET/LIST)
@@ -30,11 +37,17 @@ export interface ItemListItemDto {
   categoryName?: string | null;
   code: string;
   name: string;
+  type: number;                     // ItemType enum (1-4)
   unit: string;                     // "Adet", "Kg", "Litre"
   vatRate: number;                  // KDV oranı (0-100)
+  defaultWithholdingRate: number;   // Varsayılan tevkifat oranı (0-100)
   purchasePrice?: string | null;    // F2 - Money string (Alış fiyatı)
   salesPrice?: string | null;       // F2 - Money string (Satış fiyatı)
+  purchaseAccountCode?: string | null;
+  salesAccountCode?: string | null;
+  usefulLifeYears?: number | null;  // Demirbaş faydalı ömür (yıl)
   createdAtUtc: string;             // ISO-8601 UTC
+  updatedAtUtc?: string | null;
 }
 
 /**
@@ -47,10 +60,15 @@ export interface ItemDetailDto {
   categoryName?: string | null;
   code: string;
   name: string;
+  type: number;
   unit: string;
   vatRate: number;
-  purchasePrice?: string | null;    // F2 - Money string
-  salesPrice?: string | null;       // F2 - Money string
+  defaultWithholdingRate: number;
+  purchasePrice?: string | null;
+  salesPrice?: string | null;
+  purchaseAccountCode?: string | null;
+  salesAccountCode?: string | null;
+  usefulLifeYears?: number | null;
   rowVersion: string;               // Base64
   createdAtUtc: string;             // ISO-8601 UTC
   updatedAtUtc?: string | null;     // ISO-8601 UTC
@@ -80,18 +98,21 @@ export interface ListItemsQuery {
 
 /**
  * Create Item Body
- * Backend: CreateItemCommand
+ * Backend: CreateItemCommand — DİKKAT: BranchId yok (Item global/branch-agnostic bir master data).
  */
 export interface CreateItemBody {
-  branchId: number;
   categoryId?: number | null;
   code: string;
   name: string;
-  type: ItemType | ItemTypeStr;
+  type: number;                     // ItemType enum — SAYI olarak gönderilmeli (JsonStringEnumConverter yok)
   unit: string;
   vatRate: number;
-  purchasePrice?: string | null;    // Money string (dot separator!)
-  salesPrice?: string | null;       // Money string (dot separator!)
+  defaultWithholdingRate?: number | null;
+  purchasePrice?: string | null;    // Money string (nokta ayraç!)
+  salesPrice?: string | null;       // Money string (nokta ayraç!)
+  purchaseAccountCode?: string | null;
+  salesAccountCode?: string | null;
+  usefulLifeYears?: number | null;  // Sadece FixedAsset için anlamlı (1-50)
 }
 
 /**
@@ -100,32 +121,17 @@ export interface CreateItemBody {
  */
 export interface UpdateItemBody {
   id: number;
-  rowVersionBase64: string;         // Required for optimistic concurrency
-  branchId: number;
+  rowVersion: string;                // Required for optimistic concurrency (backend: UpdateItemCommand.RowVersion)
   categoryId?: number | null;
   code: string;
   name: string;
-  type: ItemType | ItemTypeStr;
+  type: number;
   unit: string;
   vatRate: number;
-  purchasePrice?: string | null;    // Money string (dot separator!)
-  salesPrice?: string | null;       // Money string (dot separator!)
-}
-
-// ============================================================================
-// HELPER TYPES
-// ============================================================================
-
-/**
- * Item type to string conversion
- */
-export function itemTypeToString(type: number): ItemTypeStr {
-  return type === ItemType.Service ? 'Service' : 'Inventory';
-}
-
-/**
- * Item type to number conversion
- */
-export function itemTypeToNumber(type: ItemTypeStr): ItemType {
-  return type === 'Service' ? ItemType.Service : ItemType.Inventory;
+  defaultWithholdingRate?: number | null;
+  purchasePrice?: string | null;
+  salesPrice?: string | null;
+  purchaseAccountCode?: string | null;
+  salesAccountCode?: string | null;
+  usefulLifeYears?: number | null;
 }
