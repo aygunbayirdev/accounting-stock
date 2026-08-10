@@ -131,7 +131,7 @@ namespace Accounting.Tests
                     CategoryId: null,
                     Code: "ITM-001",
                     Name: "Dual Price Product",
-                    Type: 1, // Inventory
+                    Type: ItemType.Inventory,
                     Unit: "Pcs",
                     VatRate: 18,
                     DefaultWithholdingRate: null,

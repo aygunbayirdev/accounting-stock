@@ -1,5 +1,6 @@
 ﻿using Accounting.Application.Common.JsonConverters;
 using Accounting.Application.Items.Queries.Dto;
+using Accounting.Domain.Enums;
 using MediatR;
 using System.Text.Json.Serialization;
 
@@ -9,7 +10,7 @@ public record CreateItemCommand(
     int? CategoryId,
     string Code,
     string Name,
-    int Type,
+    ItemType Type,
     string Unit,
     int VatRate,
     int? DefaultWithholdingRate, // Varsayılan tevkifat oranı (%)

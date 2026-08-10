@@ -56,7 +56,7 @@ public class ItemsTests
             CategoryId: null,
             Code: "IT-001",
             Name: "Laptop",
-            Type: 1, // Inventory
+            Type: ItemType.Inventory,
             Unit: "adet",
             VatRate: 20,
             DefaultWithholdingRate: null,
@@ -116,7 +116,7 @@ public class ItemsTests
             CategoryId: null,
             Code: item.Code, // Kod değişmiyor
             Name: "Updated Name",
-            Type: 1, // Inventory
+            Type: ItemType.Inventory,
             Unit: "kutu",
             VatRate: 18,
             DefaultWithholdingRate: null,
@@ -292,7 +292,7 @@ public class ItemsTests
             CategoryId: null,
             Code: "DUPLICATE", // Aynı kod
             Name: "Second Item",
-            Type: 1, // Inventory
+            Type: ItemType.Inventory,
             Unit: "adet",
             VatRate: 20,
             DefaultWithholdingRate: null,

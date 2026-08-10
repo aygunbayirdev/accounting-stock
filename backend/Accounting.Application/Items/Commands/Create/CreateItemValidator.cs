@@ -36,7 +36,7 @@ public class CreateItemValidator : AbstractValidator<CreateItemCommand>
         RuleFor(x => x.UsefulLifeYears)
             .GreaterThan(0)
             .LessThanOrEqualTo(50)
-            .When(x => x.Type == (int)ItemType.FixedAsset && x.UsefulLifeYears.HasValue)
+            .When(x => x.Type == ItemType.FixedAsset && x.UsefulLifeYears.HasValue)
             .WithMessage("Demirbaşlar için faydalı ömür 1-50 yıl arası olmalıdır");
     }
 }

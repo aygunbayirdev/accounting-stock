@@ -36,7 +36,7 @@ public class UpdateItemHandler : IRequestHandler<UpdateItemCommand, ItemDetailDt
         item.CategoryId = r.CategoryId;
         item.Code = r.Code.Trim();
         item.Name = r.Name.Trim();
-        item.Type = (ItemType)r.Type;
+        item.Type = r.Type;
         item.Unit = r.Unit.Trim();
         item.VatRate = r.VatRate;
         item.DefaultWithholdingRate = r.DefaultWithholdingRate;

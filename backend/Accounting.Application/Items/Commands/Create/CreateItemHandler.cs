@@ -29,7 +29,7 @@ public class CreateItemHandler : IRequestHandler<CreateItemCommand, ItemDetailDt
             CategoryId = r.CategoryId,
             Code = r.Code.Trim(),
             Name = r.Name.Trim(),
-            Type = (ItemType)r.Type,
+            Type = r.Type,
             Unit = r.Unit.Trim(),
             VatRate = r.VatRate,
             DefaultWithholdingRate = r.DefaultWithholdingRate,
