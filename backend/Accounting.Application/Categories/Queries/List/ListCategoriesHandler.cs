@@ -31,6 +31,7 @@ public class ListCategoriesHandler(IAppDbContext db) : IRequestHandler<ListCateg
             c.Name,
             c.Description,
             c.Color,
+            Convert.ToBase64String(c.RowVersion),
             c.CreatedAtUtc,
             c.UpdatedAtUtc
         )).ToList();

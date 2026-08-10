@@ -1,6 +1,6 @@
 /**
  * Category Models (Kategoriler)
- * 
+ *
  * Backend DTO'larıyla senkronize.
  * @see Accounting.Application.Categories.Queries.CategoryDto
  */
@@ -10,10 +10,11 @@
 // ============================================================================
 
 /**
- * Category DTO (Read)
- * Backend: CategoryDto
+ * Category List Item DTO (Read)
+ * Backend: CategoryListItemDto — DİKKAT: backend'de ayrı bir GetById endpoint'i YOK,
+ * bu yüzden RowVersion (edit/delete için gerekli) doğrudan liste DTO'suna eklendi.
  */
-export interface CategoryDto {
+export interface CategoryListItemDto {
   id: number;
   name: string;
   description?: string | null;
@@ -23,24 +24,19 @@ export interface CategoryDto {
   updatedAtUtc?: string | null;     // ISO-8601 UTC
 }
 
-/**
- * Category List Item (Same as detail)
- */
-export type CategoryListItemDto = CategoryDto;
-
 // ============================================================================
 // QUERY PARAMS
 // ============================================================================
 
 /**
  * List Categories Query Parameters
- * Backend: ListCategoriesQuery
+ * Backend: ListCategoriesQuery(string? Search, int Page, int PageSize) — DİKKAT: sayfa
+ * parametresinin adı "page" (diğer modüllerdeki "pageNumber" DEĞİL), sort desteklenmiyor.
  */
 export interface ListCategoriesQuery {
-  pageNumber?: number;
+  page?: number;
   pageSize?: number;
-  sort?: string;                    // "name:asc"
-  search?: string | null;           // Name search
+  search?: string | null;
 }
 
 // ============================================================================
@@ -59,11 +55,11 @@ export interface CreateCategoryBody {
 
 /**
  * Update Category Body
- * Backend: UpdateCategoryCommand
+ * Backend: UpdateCategoryCommand — RowVersion alanı "rowVersion" (rowVersionBase64 DEĞİL).
  */
 export interface UpdateCategoryBody {
   id: number;
-  rowVersionBase64: string;         // Required for optimistic concurrency
+  rowVersion: string;
   name: string;
   description?: string | null;
   color?: string | null;

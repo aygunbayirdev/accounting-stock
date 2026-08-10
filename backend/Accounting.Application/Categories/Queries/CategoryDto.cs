@@ -15,6 +15,7 @@ public record CategoryListItemDto(
     string Name,
     string? Description,
     string? Color,
+    string RowVersion,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc
 );
