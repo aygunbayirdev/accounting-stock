@@ -32,21 +32,6 @@ export interface RoleDetailDto {
 }
 
 // ============================================================================
-// QUERY PARAMS
-// ============================================================================
-
-/**
- * List Roles Query Parameters
- * Backend: ListRolesQuery
- */
-export interface ListRolesQuery {
-  pageNumber?: number;
-  pageSize?: number;
-  sort?: string;                    // "name:asc"
-  search?: string | null;           // Name search
-}
-
-// ============================================================================
 // COMMAND BODIES - WRITE (CREATE/UPDATE)
 // ============================================================================
 
@@ -70,3 +55,33 @@ export interface UpdateRoleBody {
   description?: string | null;
   permissions: string[];            // Permission names to assign
 }
+
+// ============================================================================
+// PERMISSION CATALOG
+// Backend: Accounting.Domain.Constants.Permissions.GetAll() — no list endpoint
+// exists, so this must be kept in sync with Permissions.cs by hand.
+// ============================================================================
+
+export interface PermissionGroup {
+  label: string;
+  permissions: string[];
+}
+
+export const PERMISSION_GROUPS: PermissionGroup[] = [
+  { label: 'Faturalar', permissions: ['Invoice.Create', 'Invoice.Read', 'Invoice.Update', 'Invoice.Delete'] },
+  { label: 'Ödemeler', permissions: ['Payment.Create', 'Payment.Read', 'Payment.Update', 'Payment.Delete'] },
+  { label: 'Cariler', permissions: ['Contact.Create', 'Contact.Read', 'Contact.Update', 'Contact.Delete'] },
+  { label: 'Ürünler', permissions: ['Item.Create', 'Item.Read', 'Item.Update', 'Item.Delete'] },
+  { label: 'Siparişler', permissions: ['Order.Create', 'Order.Read', 'Order.Update', 'Order.Delete', 'Order.Approve', 'Order.Cancel', 'Order.CreateInvoice'] },
+  { label: 'Stok', permissions: ['Stock.Read', 'Stock.Transfer'] },
+  { label: 'Stok Hareketleri', permissions: ['StockMovement.Create', 'StockMovement.Read'] },
+  { label: 'Depolar', permissions: ['Warehouse.Create', 'Warehouse.Read', 'Warehouse.Update', 'Warehouse.Delete'] },
+  { label: 'Kasa/Banka', permissions: ['CashBankAccount.Create', 'CashBankAccount.Read', 'CashBankAccount.Update', 'CashBankAccount.Delete'] },
+  { label: 'Çek/Senet', permissions: ['Cheque.Create', 'Cheque.Read', 'Cheque.Update', 'Cheque.Delete', 'Cheque.UpdateStatus'] },
+  { label: 'Kategoriler', permissions: ['Category.Create', 'Category.Read', 'Category.Update', 'Category.Delete'] },
+  { label: 'Şubeler', permissions: ['Branch.Create', 'Branch.Read', 'Branch.Update', 'Branch.Delete'] },
+  { label: 'Kullanıcılar', permissions: ['User.Create', 'User.Read', 'User.Update', 'User.Delete'] },
+  { label: 'Roller', permissions: ['Role.Create', 'Role.Read', 'Role.Update', 'Role.Delete'] },
+  { label: 'Raporlar', permissions: ['Report.Dashboard', 'Report.ProfitLoss', 'Report.ContactStatement', 'Report.StockStatus'] },
+  { label: 'Firma Ayarları', permissions: ['CompanySettings.Read', 'CompanySettings.Update'] }
+];

@@ -50,12 +50,12 @@ export interface UserDetailDto {
  * Backend: ListUsersQuery
  */
 export interface ListUsersQuery {
-  pageNumber?: number;
+  page?: number;
   pageSize?: number;
-  sort?: string;                    // "firstName:asc", "email:desc"
   search?: string | null;           // Name or email search
   isActive?: boolean | null;
   branchId?: number | null;
+  roleId?: number | null;
 }
 
 // ============================================================================
@@ -91,12 +91,10 @@ export interface UpdateUserBody {
 }
 
 /**
- * Change Password Body
- * Backend: ChangePasswordCommand
+ * Change Password Body (admin resets a user's password — no current-password check)
+ * Backend: ChangeUserPasswordCommand via POST /api/users/{id}/change-password
  */
 export interface ChangePasswordBody {
-  userId: number;
-  currentPassword: string;
   newPassword: string;
 }
 

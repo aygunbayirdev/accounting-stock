@@ -4,17 +4,15 @@
  * @see Accounting.Api.Controllers.RolesController
  */
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   RoleListItemDto,
   RoleDetailDto,
-  ListRolesQuery,
   CreateRoleBody,
   UpdateRoleBody
 } from '../models/role.models';
-import { PagedResult } from '../models/paged-result';
 
 @Injectable({ providedIn: 'root' })
 export class RolesService {
@@ -36,15 +34,10 @@ export class RolesService {
   }
 
   /**
-   * GET /api/roles
+   * GET /api/roles — backend returns a plain unpaginated list, no query params.
    */
-  list(query: ListRolesQuery = {}): Observable<PagedResult<RoleListItemDto>> {
-    let params = new HttpParams();
-    if (query.search) params = params.set('search', query.search);
-    if (query.pageNumber) params = params.set('pageNumber', query.pageNumber.toString());
-    if (query.pageSize) params = params.set('pageSize', query.pageSize.toString());
-    if (query.sort) params = params.set('sort', query.sort);
-    return this.http.get<PagedResult<RoleListItemDto>>(this.baseUrl, { params });
+  list(): Observable<RoleListItemDto[]> {
+    return this.http.get<RoleListItemDto[]>(this.baseUrl);
   }
 
   /**

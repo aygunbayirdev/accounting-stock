@@ -1,3 +1,4 @@
+using Accounting.Application.Users.Commands.ChangePassword;
 using Accounting.Application.Users.Commands.Create;
 using Accounting.Application.Users.Commands.Delete;
 using Accounting.Application.Users.Commands.Update;
@@ -64,4 +65,14 @@ public class UsersController : ControllerBase
         await _mediator.Send(new SoftDeleteUserCommand(id));
         return NoContent();
     }
+
+    [HttpPost("{id}/change-password")]
+    [Authorize(Policy = Permissions.User.Update)]
+    public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangeUserPasswordBody body)
+    {
+        await _mediator.Send(new ChangeUserPasswordCommand(id, body.NewPassword));
+        return NoContent();
+    }
 }
+
+public record ChangeUserPasswordBody(string NewPassword);

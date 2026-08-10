@@ -44,9 +44,9 @@ export class UsersService {
     if (query.search) params = params.set('search', query.search);
     if (query.isActive != null) params = params.set('isActive', query.isActive.toString());
     if (query.branchId != null) params = params.set('branchId', query.branchId.toString());
-    if (query.pageNumber) params = params.set('pageNumber', query.pageNumber.toString());
+    if (query.roleId != null) params = params.set('roleId', query.roleId.toString());
+    if (query.page) params = params.set('page', query.page.toString());
     if (query.pageSize) params = params.set('pageSize', query.pageSize.toString());
-    if (query.sort) params = params.set('sort', query.sort);
     return this.http.get<PagedResult<UserListItemDto>>(this.baseUrl, { params });
   }
 
@@ -65,9 +65,9 @@ export class UsersService {
   }
 
   /**
-   * POST /api/users/change-password
+   * POST /api/users/{id}/change-password
    */
-  changePassword(body: ChangePasswordBody): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/change-password`, body);
+  changePassword(id: number, body: ChangePasswordBody): Observable<void> {
+    return this.http.post<void>(`${this.baseUrl}/${id}/change-password`, body);
   }
 }

@@ -30,6 +30,7 @@ export class AppComponent {
   // Computed values from auth service
   isAuthenticated = this.authService.isAuthenticated;
   currentUser = this.authService.currentUser;
+  isAdmin = this.authService.isAdmin;
   userInitials = computed(() => {
     const user = this.currentUser();
     if (!user) return '';

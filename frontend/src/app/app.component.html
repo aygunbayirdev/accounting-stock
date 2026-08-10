@@ -47,6 +47,16 @@
           <mat-icon matListItemIcon>settings</mat-icon>
           <div matListItemTitle>Firma Ayarları</div>
         </a>
+        @if (isAdmin()) {
+          <a mat-list-item routerLink="/users" routerLinkActive="active">
+            <mat-icon matListItemIcon>manage_accounts</mat-icon>
+            <div matListItemTitle>Kullanıcılar</div>
+          </a>
+          <a mat-list-item routerLink="/roles" routerLinkActive="active">
+            <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
+            <div matListItemTitle>Roller</div>
+          </a>
+        }
       </mat-nav-list>
     </mat-sidenav>
   }

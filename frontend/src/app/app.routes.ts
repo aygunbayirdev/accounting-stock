@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/guards/auth.guard';
+import { authGuard, guestGuard, adminGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   // Public routes (guest only)
@@ -61,6 +61,16 @@ export const routes: Routes = [
     path: 'stock-movements',
     canActivate: [authGuard],
     loadComponent: () => import('./features/stock-movements/stock-movements-page.component').then(m => m.StockMovementsPageComponent)
+  },
+  {
+    path: 'users',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () => import('./features/users/users-page.component').then(m => m.UsersPageComponent)
+  },
+  {
+    path: 'roles',
+    canActivate: [authGuard, adminGuard],
+    loadComponent: () => import('./features/roles/roles-page.component').then(m => m.RolesPageComponent)
   },
 
   // ---- Invoices (özeller önce) ----
