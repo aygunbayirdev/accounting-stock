@@ -36,6 +36,8 @@ public class OrderTests
         _stockServiceMock = new Mock<IStockService>();
         _stockServiceMock.Setup(x => x.ValidateStockAvailabilityAsync(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
+        _stockServiceMock.Setup(x => x.ValidateBatchStockAvailabilityAsync(It.IsAny<Dictionary<int, decimal>>(), It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
 
         var audit = new AuditSaveChangesInterceptor(_currentUserServiceMock.Object);
         _db = new AppDbContext(options, audit, _currentUserServiceMock.Object);
@@ -152,5 +154,15 @@ public class OrderTests
 
         var order = await _db.Orders.FindAsync(1);
         Assert.Equal(OrderStatus.Approved, order!.Status);
+
+        // ApproveOrderHandler now validates stock in one batched call instead of per-line.
+        _stockServiceMock.Verify(
+            x => x.ValidateBatchStockAvailabilityAsync(
+                It.Is<Dictionary<int, decimal>>(d => d.Count == 1 && d[1] == 10),
+                It.IsAny<CancellationToken>()),
+            Times.Once);
+        _stockServiceMock.Verify(
+            x => x.ValidateStockAvailabilityAsync(It.IsAny<int>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()),
+            Times.Never);
     }
 }

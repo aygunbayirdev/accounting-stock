@@ -52,6 +52,10 @@ public class InvoicesTests
         db.Contacts.Add(new Contact { Id = 1, BranchId = 1, Name = "Test Customer", Code = "C-01", IsCustomer = true });
         db.Items.Add(new Item { Id = 10, Name = "Item A", Code = "I-01", Unit = "adet", VatRate = 20, SalesPrice = 100m });
         db.Warehouses.Add(new Warehouse { Id = 1, BranchId = 1, Name = "Main Warehouse", Code = "WH-01", IsDefault = true, RowVersion = Array.Empty<byte>() });
+        // Item defaults to ItemType.Inventory, so the Sales invoice line below creates a real
+        // stock movement (CreateInvoiceHandler now applies it directly, not through a mocked
+        // mediator) — needs enough stock on hand or it correctly fails with "Yetersiz stok".
+        db.Stocks.Add(new Stock { BranchId = 1, WarehouseId = 1, ItemId = 10, Quantity = 100m, RowVersion = Array.Empty<byte>() });
         await db.SaveChangesAsync();
 
         // Mocks
@@ -63,7 +67,7 @@ public class InvoicesTests
             .Setup(x => x.ValidateBatchStockAvailabilityAsync(It.IsAny<Dictionary<int, decimal>>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
 
-        var handler = new CreateInvoiceHandler(db, _mediatorMock.Object, _stockServiceMock.Object, userService, _invoiceNumberServiceMock.Object);
+        var handler = new CreateInvoiceHandler(db, _stockServiceMock.Object, userService, _invoiceNumberServiceMock.Object);
 
         var command = new CreateInvoiceCommand(
             ContactId: 1,

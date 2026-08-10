@@ -1,6 +1,7 @@
 ﻿using Accounting.Application.Common.Abstractions;
 using Accounting.Application.Common.Exceptions;
 using Accounting.Application.Common.Utils;
+using Accounting.Application.Services;
 using Accounting.Application.StockMovements.Queries.Dto;
 using Accounting.Domain.Entities;
 using Accounting.Domain.Enums;
@@ -51,13 +52,9 @@ public class CreateStockMovementHandler(IAppDbContext db, ICurrentUserService cu
             db.Stocks.Add(stock);
         }
 
-        // yön belirle: In => +qty, Out => -qty
-        var signedQty = IsIn(r.Type) ? qty : -qty;
-
-        // business rule: stok negatife düşemez
-        var newQty = DecimalExtensions.RoundQuantity(stock.Quantity + signedQty);
-        if (newQty < 0m)
-            throw new BusinessRuleException("Yetersiz stok.");
+        // yön belirle (In/Out) ve negatife düşmeyi engelle: StockQuantityCalculator
+        // hem burada hem CreateInvoiceHandler'ın toplu senkronizasyonunda kullanılıyor.
+        var newQty = StockQuantityCalculator.ApplyMovement(stock.Quantity, r.Type, qty);
 
         var trxDate = r.TransactionDateUtc ?? DateTime.UtcNow;
 
@@ -113,7 +110,4 @@ public class CreateStockMovementHandler(IAppDbContext db, ICurrentUserService cu
             saved.UpdatedAtUtc
         );
     }
-
-    private static bool IsIn(StockMovementType t) =>
-        t is StockMovementType.PurchaseIn or StockMovementType.AdjustmentIn or StockMovementType.SalesReturn;
 }

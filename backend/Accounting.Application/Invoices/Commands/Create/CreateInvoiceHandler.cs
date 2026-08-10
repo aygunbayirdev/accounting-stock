@@ -2,6 +2,7 @@
 using Accounting.Application.Common.Abstractions;
 using Accounting.Application.Common.Exceptions;
 using Accounting.Application.Common.Utils;
+using Accounting.Application.Services;
 using Accounting.Domain.Entities;
 using Accounting.Domain.Enums;
 using MediatR;
@@ -14,20 +15,17 @@ public class CreateInvoiceHandler
     : IRequestHandler<CreateInvoiceCommand, CreateInvoiceResult>
 {
     private readonly IAppDbContext _db;
-    private readonly IMediator _mediator;
     private readonly IStockService _stockService;
     private readonly ICurrentUserService _currentUserService;
     private readonly IInvoiceNumberService _invoiceNumberService;
 
     public CreateInvoiceHandler(
         IAppDbContext db,
-        IMediator mediator,
         IStockService stockService,
         ICurrentUserService currentUserService,
         IInvoiceNumberService invoiceNumberService)
     {
         _db = db;
-        _mediator = mediator;
         _stockService = stockService;
         _currentUserService = currentUserService;
         _invoiceNumberService = invoiceNumberService;
@@ -138,7 +136,7 @@ public class CreateInvoiceHandler
             var discountRate = lineDto.DiscountRate ?? 0;
             line.DiscountRate = discountRate;
 
-            var totals = Accounting.Application.Services.InvoiceLineCalculator.Calculate(
+            var totals = InvoiceLineCalculator.Calculate(
                 line.Qty, line.UnitPrice, line.VatRate, discountRate, line.WithholdingRate);
 
             line.Gross = totals.Gross;
@@ -229,31 +227,65 @@ public class CreateInvoiceHandler
                 $"Şube (BranchId: {invoice.BranchId}) için tanımlı depo bulunamadı.");
         }
 
-        // Her satır için stok hareketi oluştur
-        foreach (var line in invoice.Lines)
-        {
-            if (line.ItemId == null) continue;
+        // Stok hareketi gerektiren (Inventory tipinde, miktarı sıfırdan farklı) satırlar
+        var eligibleLines = invoice.Lines
+            .Where(l => l.ItemId != null
+                && l.Qty != 0
+                && itemsMap.TryGetValue(l.ItemId.Value, out var item)
+                && (ItemType)item.Type == ItemType.Inventory)
+            .ToList();
 
-            // Sadece Inventory tipindeki item'lar için stok hareketi
-            if (itemsMap.TryGetValue(line.ItemId.Value, out var item))
+        if (eligibleLines.Count == 0) return;
+
+        // Tüm satırların stok anlık görüntülerini tek sorguda çek (satır başına
+        // ayrı mediator dispatch + ayrı SaveChangesAsync yerine).
+        var itemIds = eligibleLines.Select(l => l.ItemId!.Value).Distinct().ToList();
+        var stocksByItemId = await _db.Stocks
+            .Where(s => s.BranchId == invoice.BranchId
+                && s.WarehouseId == defaultWarehouse.Id
+                && itemIds.Contains(s.ItemId))
+            .ToDictionaryAsync(s => s.ItemId, ct);
+
+        foreach (var line in eligibleLines)
+        {
+            var itemId = line.ItemId!.Value;
+            var qty = DecimalExtensions.RoundQuantity(line.Qty);
+
+            if (!stocksByItemId.TryGetValue(itemId, out var stock))
             {
-                if ((ItemType)item.Type != ItemType.Inventory) continue;
+                stock = new Stock
+                {
+                    BranchId = invoice.BranchId,
+                    WarehouseId = defaultWarehouse.Id,
+                    ItemId = itemId,
+                    Quantity = 0m
+                };
+                _db.Stocks.Add(stock);
+                stocksByItemId[itemId] = stock;
             }
 
-            var absQty = line.Qty;
-            if (absQty == 0) continue;
+            stock.Quantity = StockQuantityCalculator.ApplyMovement(stock.Quantity, movementType.Value, qty);
 
-            var cmd = new Accounting.Application.StockMovements.Commands.Create.CreateStockMovementCommand(
-                WarehouseId: defaultWarehouse.Id,
-                ItemId: line.ItemId.Value,
-                Type: movementType.Value,
-                Quantity: DecimalExtensions.RoundQuantity(absQty),
-                TransactionDateUtc: invoice.DateUtc,
-                Note: null,
-                InvoiceId: invoice.Id
-            );
+            _db.StockMovements.Add(new StockMovement
+            {
+                BranchId = invoice.BranchId,
+                WarehouseId = defaultWarehouse.Id,
+                ItemId = itemId,
+                InvoiceId = invoice.Id,
+                Type = movementType.Value,
+                Quantity = qty,
+                TransactionDateUtc = invoice.DateUtc,
+                Note = null
+            });
+        }
 
-            await _mediator.Send(cmd, ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new ConcurrencyConflictException("Stok güncellenirken eşzamanlılık hatası oluştu. Lütfen tekrar deneyin.");
         }
     }
 }

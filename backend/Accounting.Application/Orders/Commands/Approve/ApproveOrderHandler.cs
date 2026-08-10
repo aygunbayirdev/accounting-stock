@@ -38,15 +38,17 @@ public class ApproveOrderHandler : IRequestHandler<ApproveOrderCommand, bool>
         if (order.Status != OrderStatus.Draft)
             throw new BusinessRuleException("Sadece 'Taslak' durumundaki siparişler onaylanabilir.");
 
-        // Validate Stock for Sales Orders
+        // Validate Stock for Sales Orders (batched: one query instead of one per line)
         if (order.Type == InvoiceType.Sales)
         {
-            foreach (var line in order.Lines)
+            var stockRequirements = order.Lines
+                .Where(l => l.ItemId.HasValue)
+                .GroupBy(l => l.ItemId!.Value)
+                .ToDictionary(g => g.Key, g => g.Sum(l => l.Quantity));
+
+            if (stockRequirements.Count > 0)
             {
-                if (line.ItemId.HasValue)
-                {
-                    await _stockService.ValidateStockAvailabilityAsync(line.ItemId.Value, line.Quantity, ct);
-                }
+                await _stockService.ValidateBatchStockAvailabilityAsync(stockRequirements, ct);
             }
         }
 

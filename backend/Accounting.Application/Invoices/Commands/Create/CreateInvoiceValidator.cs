@@ -72,11 +72,12 @@ public class CreateInvoiceValidator : AbstractValidator<CreateInvoiceCommand>
                 .WithMessage("İskonto oranı 0-100 arasında olmalıdır.");
         });
 
-        // Item branch kontrolü
+        // Item'lar gerçekten var mı (Item artık global/branch-agnostic bir entity,
+        // bu yüzden burada bir şube kıyaslaması değil, sadece varlık kontrolü yapılır).
         RuleFor(x => x)
-            .MustAsync(AllItemsBelongToSameBranchAsync)
-            .WithMessage("Fatura satırlarındaki ürünler (Item) fatura ile aynı şubeye ait olmalıdır.")
-            .When(x => x.Lines != null && x.Lines.Any() && _currentUserService.BranchId.HasValue);
+            .MustAsync(AllItemsExistAsync)
+            .WithMessage("Fatura satırlarındaki bir veya daha fazla ürün bulunamadı.")
+            .When(x => x.Lines != null && x.Lines.Any());
     }
 
     private async Task<bool> ContactBelongsToSameBranchAsync(CreateInvoiceCommand cmd, CancellationToken ct)
@@ -96,25 +97,22 @@ public class CreateInvoiceValidator : AbstractValidator<CreateInvoiceCommand>
         return contact.BranchId == currentBranchId;
     }
 
-    private async Task<bool> AllItemsBelongToSameBranchAsync(CreateInvoiceCommand cmd, CancellationToken ct)
+    private async Task<bool> AllItemsExistAsync(CreateInvoiceCommand cmd, CancellationToken ct)
     {
-        if (!_currentUserService.BranchId.HasValue) return false;
-        var currentBranchId = _currentUserService.BranchId.Value;
-
         var itemIds = cmd.Lines
             .Where(l => l.ItemId.HasValue)
             .Select(l => l.ItemId!.Value)
             .Distinct()
             .ToList();
 
-        if (!itemIds.Any())
+        if (itemIds.Count == 0)
             return true;
 
-        var mismatchedItems = await _db.Items
+        var existingCount = await _db.Items
             .AsNoTracking()
             .Where(i => itemIds.Contains(i.Id) && !i.IsDeleted)
-            .AnyAsync(ct);
+            .CountAsync(ct);
 
-        return !mismatchedItems;
+        return existingCount == itemIds.Count;
     }
 }

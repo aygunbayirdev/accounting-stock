@@ -62,16 +62,23 @@ public class StockServiceTests
         order.Lines.Add(new OrderLine { ItemId = 10, Description = "Item A", Quantity = 2, UnitPrice = 10, Total = 20 });
         db.Orders.Add(order);
 
+        // Physical on-hand snapshot (what CreateStockMovementHandler/CreateInvoiceHandler
+        // actually keep in sync) — QuantityAvailable is derived from this, not from
+        // re-summing invoice lines.
+        db.Warehouses.Add(new Warehouse { Id = 1, BranchId = 1, Code = "WH-01", Name = "Main", IsDefault = true, RowVersion = Array.Empty<byte>() });
+        db.Stocks.Add(new Stock { BranchId = 1, WarehouseId = 1, ItemId = 10, Quantity = 7, RowVersion = Array.Empty<byte>() });
+
         await db.SaveChangesAsync();
 
-        var service = new StockService(db);
+        var service = new StockService(db, userService);
 
         var stock = await service.GetItemStockAsync(10, CancellationToken.None);
 
-        // In: 10
-        // Out: 3
+        // In: 10 (informational, from invoice lines)
+        // Out: 3 (informational, from invoice lines)
+        // On-hand (Stock table): 7
         // Reserved: 2
-        // Available: (10 - 3) - 2 = 5
+        // Available: on-hand(7) - reserved(2) = 5
         Assert.Equal(10, stock.QuantityIn);
         Assert.Equal(3, stock.QuantityOut);
         Assert.Equal(2, stock.QuantityReserved);
@@ -85,20 +92,53 @@ public class StockServiceTests
         var audit = new AuditSaveChangesInterceptor(userService);
         using var db = new AppDbContext(_options, audit, userService);
 
-        // Seed only 5 items in stock
+        // Seed only 5 items physically on hand
         db.Branches.Add(new Branch { Id = 1, Name = "Main Branch", Code = "BR-01" });
         db.Items.Add(new Item { Id = 10, Name = "Item A", Code = "I-01" });
-        var inv = new Invoice { BranchId = 1, ContactId = 1, Type = InvoiceType.Purchase, InvoiceNumber="INV-01", RowVersion = Array.Empty<byte>() };
-        inv.Lines.Add(new InvoiceLine { ItemId = 10, ItemCode = "I-01", ItemName = "Item A", Unit="adet", Qty = 5, Net=50, Gross=60 });
-        db.Invoices.Add(inv);
+        db.Warehouses.Add(new Warehouse { Id = 1, BranchId = 1, Code = "WH-01", Name = "Main", IsDefault = true, RowVersion = Array.Empty<byte>() });
+        db.Stocks.Add(new Stock { BranchId = 1, WarehouseId = 1, ItemId = 10, Quantity = 5, RowVersion = Array.Empty<byte>() });
         await db.SaveChangesAsync();
 
-        var service = new StockService(db);
+        var service = new StockService(db, userService);
 
         // Request 10 -> Should Fail
         await Assert.ThrowsAsync<Accounting.Application.Common.Exceptions.BusinessRuleException>(async () =>
         {
             await service.ValidateStockAvailabilityAsync(10, 10, CancellationToken.None);
         });
+    }
+
+    /// <summary>
+    /// Regression test for a real bug found via manual API testing: stock entered as an
+    /// opening balance / adjustment (a StockMovement with no matching Purchase invoice —
+    /// exactly how DataSeeder and any real "initial inventory count" workflow populates
+    /// stock) was invisible to the old invoice-line-summing calculation, so
+    /// ValidateStockAvailabilityAsync rejected every sale of seeded/adjusted stock even
+    /// though the Stock table correctly showed plenty on hand.
+    /// </summary>
+    [Fact]
+    public async Task ValidateStockAvailability_ShouldSucceed_ForStockWithNoPurchaseInvoice()
+    {
+        var userService = new FakeCurrentUserService(branchId: 1);
+        var audit = new AuditSaveChangesInterceptor(userService);
+        using var db = new AppDbContext(_options, audit, userService);
+
+        db.Branches.Add(new Branch { Id = 1, Name = "Main Branch", Code = "BR-01" });
+        db.Items.Add(new Item { Id = 10, Name = "Item A", Code = "I-01" });
+        db.Warehouses.Add(new Warehouse { Id = 1, BranchId = 1, Code = "WH-01", Name = "Main", IsDefault = true, RowVersion = Array.Empty<byte>() });
+
+        // No Invoice/InvoiceLine at all — stock arrived purely as an opening-balance
+        // adjustment movement, same as DataSeeder's "Açılış stoku" entries.
+        db.Stocks.Add(new Stock { BranchId = 1, WarehouseId = 1, ItemId = 10, Quantity = 62m, RowVersion = Array.Empty<byte>() });
+        await db.SaveChangesAsync();
+
+        var service = new StockService(db, userService);
+
+        // Should not throw: 62 on hand, 2 requested.
+        await service.ValidateStockAvailabilityAsync(10, 2, CancellationToken.None);
+
+        var stock = await service.GetItemStockAsync(10, CancellationToken.None);
+        Assert.Equal(0, stock.QuantityIn);   // no Purchase invoice exists
+        Assert.Equal(62, stock.QuantityAvailable);
     }
 }

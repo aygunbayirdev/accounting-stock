@@ -41,10 +41,11 @@ public sealed class UpdateInvoiceValidator : AbstractValidator<UpdateInvoiceComm
             .MustAsync(ContactBelongsToSameBranchAsync)
             .WithMessage("Cari (Contact) fatura ile aynı şubeye ait olmalıdır.");
 
-        // Branch Tutarlılık Kontrolü: Item'lar aynı şubeye ait olmalı
+        // Item'lar gerçekten var mı (Item artık global/branch-agnostic bir entity,
+        // bu yüzden burada bir şube kıyaslaması değil, sadece varlık kontrolü yapılır).
         RuleFor(x => x)
-            .MustAsync(AllItemsBelongToSameBranchAsync)
-            .WithMessage("Fatura satırlarındaki ürünler (Item) fatura ile aynı şubeye ait olmalıdır.");
+            .MustAsync(AllItemsExistAsync)
+            .WithMessage("Fatura satırlarındaki bir veya daha fazla ürün bulunamadı.");
 
         // Id>0 olan satırlarda tekrar kontrolü
         RuleFor(x => x.Lines)
@@ -75,26 +76,23 @@ public sealed class UpdateInvoiceValidator : AbstractValidator<UpdateInvoiceComm
         return contact.BranchId == currentBranchId;
     }
 
-    private async Task<bool> AllItemsBelongToSameBranchAsync(UpdateInvoiceCommand cmd, CancellationToken ct)
+    private async Task<bool> AllItemsExistAsync(UpdateInvoiceCommand cmd, CancellationToken ct)
     {
-        if (!_currentUserService.BranchId.HasValue) return false;
-        var currentBranchId = _currentUserService.BranchId.Value;
-
         var itemIds = cmd.Lines
             .Where(l => l.ItemId.HasValue)
             .Select(l => l.ItemId!.Value)
             .Distinct()
             .ToList();
 
-        if (!itemIds.Any())
+        if (itemIds.Count == 0)
             return true;
 
-        var mismatchedItems = await _db.Items
+        var existingCount = await _db.Items
             .AsNoTracking()
             .Where(i => itemIds.Contains(i.Id) && !i.IsDeleted)
-            .AnyAsync(ct);
+            .CountAsync(ct);
 
-        return !mismatchedItems;
+        return existingCount == itemIds.Count;
     }
 }
 
