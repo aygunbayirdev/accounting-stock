@@ -39,7 +39,7 @@ type ContactKind = 'company' | 'person';
           </mat-select>
         </mat-form-field>
 
-        <mat-button-toggle-group class="kind-toggle" [(ngModel)]="kind" [ngModelOptions]="{standalone: true}">
+        <mat-button-toggle-group class="kind-toggle" [(ngModel)]="kind" [ngModelOptions]="{standalone: true}" (change)="onKindChange()">
           <mat-button-toggle value="company">Şirket</mat-button-toggle>
           <mat-button-toggle value="person">Şahıs</mat-button-toggle>
         </mat-button-toggle-group>
@@ -48,15 +48,26 @@ type ContactKind = 'company' | 'person';
           <mat-form-field appearance="outline">
             <mat-label>Unvan</mat-label>
             <input matInput formControlName="name" maxlength="200" />
+            @if (form.controls.name.hasError('required')) {
+              <mat-error>Unvan gerekli</mat-error>
+            }
           </mat-form-field>
           <div class="row">
             <mat-form-field appearance="outline">
               <mat-label>Vergi No</mat-label>
               <input matInput formControlName="taxNumber" maxlength="10" />
+              @if (form.controls.taxNumber.hasError('required')) {
+                <mat-error>Vergi No gerekli</mat-error>
+              } @else if (form.controls.taxNumber.hasError('minlength') || form.controls.taxNumber.hasError('maxlength')) {
+                <mat-error>Vergi No 10 haneli olmalı</mat-error>
+              }
             </mat-form-field>
             <mat-form-field appearance="outline">
               <mat-label>Vergi Dairesi</mat-label>
               <input matInput formControlName="taxOffice" maxlength="100" />
+              @if (form.controls.taxOffice.hasError('required')) {
+                <mat-error>Vergi Dairesi gerekli</mat-error>
+              }
             </mat-form-field>
           </div>
           <div class="row">
@@ -74,15 +85,26 @@ type ContactKind = 'company' | 'person';
             <mat-form-field appearance="outline">
               <mat-label>Ad</mat-label>
               <input matInput formControlName="firstName" maxlength="100" />
+              @if (form.controls.firstName.hasError('required')) {
+                <mat-error>Ad gerekli</mat-error>
+              }
             </mat-form-field>
             <mat-form-field appearance="outline">
               <mat-label>Soyad</mat-label>
               <input matInput formControlName="lastName" maxlength="100" />
+              @if (form.controls.lastName.hasError('required')) {
+                <mat-error>Soyad gerekli</mat-error>
+              }
             </mat-form-field>
           </div>
           <mat-form-field appearance="outline">
             <mat-label>TC Kimlik No</mat-label>
             <input matInput formControlName="tckn" maxlength="11" />
+            @if (form.controls.tckn.hasError('required')) {
+              <mat-error>TC Kimlik No gerekli</mat-error>
+            } @else if (form.controls.tckn.hasError('minlength') || form.controls.tckn.hasError('maxlength')) {
+              <mat-error>TC Kimlik No 11 haneli olmalı</mat-error>
+            }
           </mat-form-field>
           <div class="row">
             <mat-form-field appearance="outline">
@@ -164,10 +186,53 @@ export class ContactFormDialogComponent {
 
   constructor() {
     this.branchesService.list().subscribe(res => (this.branches = res));
+    this.applyKindValidators();
   }
 
   onRetailChange(checked: boolean) {
     if (checked) this.form.patchValue({ isCustomer: false });
+  }
+
+  onKindChange(): void {
+    this.applyKindValidators();
+  }
+
+  /**
+   * Backend CreateContactValidator/UpdateContactValidator ile birebir aynı kural seti:
+   * Şirket seçiliyken Unvan/Vergi No/Vergi Dairesi, Şahıs seçiliyken TC/Ad/Soyad zorunlu.
+   * Bunlar client-side işaretlenmezse form "geçerli" görünüp backend'den 400 ile geri döner.
+   */
+  private applyKindValidators(): void {
+    const isCompany = this.kind === 'company';
+    const isPerson = this.kind === 'person';
+
+    this.form.controls.name.setValidators(
+      isCompany ? [Validators.required, Validators.maxLength(200)] : [Validators.maxLength(200)]
+    );
+    this.form.controls.taxNumber.setValidators(
+      isCompany
+        ? [Validators.required, Validators.minLength(10), Validators.maxLength(10)]
+        : [Validators.maxLength(10)]
+    );
+    this.form.controls.taxOffice.setValidators(
+      isCompany ? [Validators.required, Validators.maxLength(100)] : [Validators.maxLength(100)]
+    );
+
+    this.form.controls.tckn.setValidators(
+      isPerson
+        ? [Validators.required, Validators.minLength(11), Validators.maxLength(11)]
+        : [Validators.maxLength(11)]
+    );
+    this.form.controls.firstName.setValidators(
+      isPerson ? [Validators.required, Validators.maxLength(100)] : [Validators.maxLength(100)]
+    );
+    this.form.controls.lastName.setValidators(
+      isPerson ? [Validators.required, Validators.maxLength(100)] : [Validators.maxLength(100)]
+    );
+
+    for (const key of ['name', 'taxNumber', 'taxOffice', 'tckn', 'firstName', 'lastName'] as const) {
+      this.form.controls[key].updateValueAndValidity();
+    }
   }
 
   save() {
