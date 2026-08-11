@@ -39,3 +39,16 @@ export interface ContactStatementDto {
   contactName: string;
   items: ContactStatementLineDto[];
 }
+
+// ========== Stock Status Report (Stok Durumu Raporu) ==========
+
+export interface StockStatusDto {
+  itemId: number;
+  itemCode: string;
+  itemName: string;
+  unit: string;
+  quantityIn: string;        // Giren
+  quantityOut: string;       // Çıkan
+  quantityReserved: string;  // Rezerve
+  quantityAvailable: string; // Mevcut
+}
