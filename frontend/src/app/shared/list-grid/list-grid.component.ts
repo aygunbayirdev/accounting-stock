@@ -132,6 +132,15 @@ export class ListGridComponent<T> implements OnInit {
 
   onGridReady(e: GridReadyEvent<T>) { this.api = e.api; }
 
+  /**
+   * ag-grid'in konteyner genişliğini ilk render'da yanlış ölçtüğü durumlar için
+   * (örn. MatDialog açılış animasyonu tam bitmeden grid mount olduğunda — flex/minWidth'e
+   * rağmen ag-grid'in dahili sütun-genişlik modeli görsel konteynerle senkron kalmayabiliyor)
+   * dışarıdan (örn. LookupDialogComponent, dialogRef.afterOpened() sonrası) tetiklenebilecek
+   * manuel bir yeniden-boyutlandırma.
+   */
+  public sizeColumnsToFit() { this.api?.sizeColumnsToFit(); }
+
   onRowDoubleClicked(e: RowDoubleClickedEvent<T>) {
     if (e.data) this.rowDoubleClicked.emit(e.data);
   }

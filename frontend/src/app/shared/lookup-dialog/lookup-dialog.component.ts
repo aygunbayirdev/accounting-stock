@@ -64,7 +64,7 @@ export interface LookupDialogData<T> {
     </mat-dialog-actions>
   `,
   styles: [`
-    .lookup-content { width: 760px; max-width: 90vw; display:flex; flex-direction:column; gap:4px; }
+    .lookup-content { width: 100%; display:flex; flex-direction:column; gap:4px; }
     .search-field { width:100%; }
     .hint { font-size:0.8em; color: var(--mat-sys-on-surface-variant, #666); padding: 2px 4px 0; }
   `]
@@ -88,6 +88,16 @@ export class LookupDialogComponent<T> implements OnInit {
         this.grid.pageNumber.set(1);
         this.grid.reload();
       });
+
+    // MatDialog'un açılış animasyonu tam bitmeden ag-grid mount olabiliyor; bu durumda
+    // ag-grid'in dahili sütun-genişlik modeli, animasyonun nihai (daha geniş) konteyner
+    // boyutuyla senkron kalmıyor — sonuç: sütunlar toplamda görünür alandan geniş
+    // hesaplanıyor ve satırların tıklanabilir alanı gerçek görsel konumuyla eşleşmiyor.
+    // Animasyon bittiğinde (afterOpened) ag-grid'e gerçek konteyner boyutuna göre
+    // yeniden ölçmesini söylüyoruz.
+    this.dialogRef.afterOpened().subscribe(() => {
+      setTimeout(() => this.grid?.sizeColumnsToFit(), 0);
+    });
   }
 
   select(row: T) {

@@ -152,6 +152,8 @@ export class EntityPickerComponent implements OnInit, OnChanges {
     const cfg = this.lookup;
     if (!cfg) return;
     const ref = this.dialog.open<LookupDialogComponent<unknown>, LookupDialogData<unknown>>(LookupDialogComponent, {
+      width: '820px',
+      maxWidth: '95vw',
       data: {
         title: cfg.title,
         columns: cfg.columns,
