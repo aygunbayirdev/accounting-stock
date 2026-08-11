@@ -8,8 +8,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { EntityPickerComponent, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import { EntityPickerComponent, LookupConfig, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import { CONTACT_LOOKUP_COLUMNS, CONTACT_LOOKUP_SORT_WHITELIST, contactToOption } from '../../shared/entity-picker/lookup-configs';
 import { ContactsService } from '../../core/services/contacts.service';
+import { ContactListItemDto } from '../../core/models/contact.models';
 import { ChequeType, ChequeDirection, CreateChequeBody } from '../../core/models/cheque.models';
 
 export interface ChequeFormDialogData {
@@ -49,6 +51,7 @@ export interface ChequeFormDialogData {
         <app-entity-picker
           [label]="form.value.direction === ChequeDirection.Inbound ? 'Cari (zorunlu)' : 'Cari (opsiyonel)'"
           [fetcher]="contactFetcher"
+          [lookup]="contactLookup"
           [value]="form.value.contactId ?? null"
           [width]="'100%'"
           (valueChange)="onContactSelected($event)">
@@ -161,6 +164,15 @@ export class ChequeFormDialogComponent {
     this.contactsService.list({ search: search || null, pageSize: 20 }).pipe(
       map(res => res.items.map(c => ({ id: c.id, label: c.code, sublabel: c.name })))
     );
+
+  contactLookup: LookupConfig<ContactListItemDto> = {
+    title: 'Cari Seç',
+    columns: CONTACT_LOOKUP_COLUMNS,
+    sortWhitelist: CONTACT_LOOKUP_SORT_WHITELIST,
+    searchPlaceholder: 'Kod, ad veya e-posta ile ara...',
+    fetcher: (q) => this.contactsService.list(q),
+    toOption: contactToOption
+  };
 
   onContactSelected(id: number | null) {
     this.form.patchValue({ contactId: id });

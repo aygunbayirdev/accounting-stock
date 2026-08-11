@@ -20,9 +20,15 @@ import { LineActionsCell } from './line-actions.cell';
 // (precision 28, ROUND_HALF_UP) şekilde global olarak yapılandırıyor — modül import
 // edildiğinde bu ayar zaten uygulanıyor, burada tekrar Decimal.set() çağırmaya gerek yok.
 import { calculateInvoiceLine } from '../../core/utils/money.utils';
-import { EntityPickerComponent, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import { EntityPickerComponent, LookupConfig, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import {
+  CONTACT_LOOKUP_COLUMNS, CONTACT_LOOKUP_SORT_WHITELIST, contactToOption,
+  ITEM_LOOKUP_COLUMNS, ITEM_LOOKUP_SORT_WHITELIST, itemToOption
+} from '../../shared/entity-picker/lookup-configs';
 import { ContactsService } from '../../core/services/contacts.service';
+import { ContactListItemDto } from '../../core/models/contact.models';
 import { ItemsService } from '../../core/services/items.service';
+import { ItemListItemDto } from '../../core/models/item.models';
 import { DocumentType, DocumentTypeNames } from '../../core/models/invoice.models';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -126,6 +132,7 @@ type LineRow = {
       <app-entity-picker
         label="Cari"
         [fetcher]="contactFetcher"
+        [lookup]="contactLookup"
         [value]="form.value.contactId ?? null"
         [initialLabel]="contactLabel"
         [width]="'100%'"
@@ -193,6 +200,7 @@ type LineRow = {
         label="Ürün Ekle"
         placeholder="Ürün ara ve seç..."
         [fetcher]="itemFetcher"
+        [lookup]="itemLookup"
         [width]="'320px'"
         (valueChange)="onItemPicked($event)">
       </app-entity-picker>
@@ -333,6 +341,24 @@ export class InvoiceFormComponent {
     this.itemsService.list({ search: search || undefined, pageSize: 20 }).pipe(
       map(res => res.items.map(i => ({ id: i.id, label: i.code, sublabel: i.name })))
     );
+
+  contactLookup: LookupConfig<ContactListItemDto> = {
+    title: 'Cari Seç',
+    columns: CONTACT_LOOKUP_COLUMNS,
+    sortWhitelist: CONTACT_LOOKUP_SORT_WHITELIST,
+    searchPlaceholder: 'Kod, ad veya e-posta ile ara...',
+    fetcher: (q) => this.contactsService.list(q),
+    toOption: contactToOption
+  };
+
+  itemLookup: LookupConfig<ItemListItemDto> = {
+    title: 'Ürün Seç',
+    columns: ITEM_LOOKUP_COLUMNS,
+    sortWhitelist: ITEM_LOOKUP_SORT_WHITELIST,
+    searchPlaceholder: 'Kod veya ad ile ara...',
+    fetcher: (q) => this.itemsService.list(q),
+    toOption: itemToOption
+  };
 
   onContactSelected(id: number | null) {
     this.form.patchValue({ contactId: id });

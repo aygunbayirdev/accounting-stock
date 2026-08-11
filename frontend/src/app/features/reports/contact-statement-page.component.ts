@@ -8,9 +8,11 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Observable, map } from 'rxjs';
-import { EntityPickerComponent, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import { EntityPickerComponent, LookupConfig, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import { CONTACT_LOOKUP_COLUMNS, CONTACT_LOOKUP_SORT_WHITELIST, contactToOption } from '../../shared/entity-picker/lookup-configs';
 import { ReportsService } from '../../core/services/reports.service';
 import { ContactsService } from '../../core/services/contacts.service';
+import { ContactListItemDto } from '../../core/models/contact.models';
 import { ContactStatementDto } from '../../core/models/report.models';
 
 @Component({
@@ -29,6 +31,7 @@ import { ContactStatementDto } from '../../core/models/report.models';
       <app-entity-picker
         label="Cari"
         [fetcher]="contactFetcher"
+        [lookup]="contactLookup"
         [value]="contactId"
         [width]="'320px'"
         (valueChange)="onContactSelected($event)">
@@ -163,6 +166,15 @@ export class ContactStatementPageComponent {
     this.contactsService.list({ search: search || null, pageSize: 20 }).pipe(
       map(res => res.items.map(c => ({ id: c.id, label: c.code, sublabel: c.name })))
     );
+
+  contactLookup: LookupConfig<ContactListItemDto> = {
+    title: 'Cari Seç',
+    columns: CONTACT_LOOKUP_COLUMNS,
+    sortWhitelist: CONTACT_LOOKUP_SORT_WHITELIST,
+    searchPlaceholder: 'Kod, ad veya e-posta ile ara...',
+    fetcher: (q) => this.contactsService.list(q),
+    toOption: contactToOption
+  };
 
   onContactSelected(id: number | null) {
     this.contactId = id;

@@ -7,9 +7,15 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatButtonModule } from '@angular/material/button';
 import { Observable, map } from 'rxjs';
-import { EntityPickerComponent, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import { EntityPickerComponent, LookupConfig, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import {
+  CASH_BANK_ACCOUNT_LOOKUP_COLUMNS, CASH_BANK_ACCOUNT_LOOKUP_SORT_WHITELIST, cashBankAccountToOption,
+  CONTACT_LOOKUP_COLUMNS, CONTACT_LOOKUP_SORT_WHITELIST, contactToOption
+} from '../../shared/entity-picker/lookup-configs';
 import { CashBankAccountsService } from '../../core/services/cash-bank-accounts.service';
+import { CashBankAccountListItemDto } from '../../core/models/cash-bank-account.models';
 import { ContactsService } from '../../core/services/contacts.service';
+import { ContactListItemDto } from '../../core/models/contact.models';
 import {
   PaymentDetailDto,
   PaymentDirection,
@@ -36,6 +42,7 @@ export interface PaymentFormDialogData {
         <app-entity-picker
           label="Hesap (Kasa/Banka)"
           [fetcher]="accountFetcher"
+          [lookup]="accountLookup"
           [value]="form.value.accountId ?? null"
           [initialLabel]="data.accountLabel ?? null"
           [width]="'100%'"
@@ -45,6 +52,7 @@ export interface PaymentFormDialogData {
         <app-entity-picker
           label="Cari (opsiyonel)"
           [fetcher]="contactFetcher"
+          [lookup]="contactLookup"
           [value]="form.value.contactId ?? null"
           [initialLabel]="data.contactLabel ?? null"
           [width]="'100%'"
@@ -124,6 +132,24 @@ export class PaymentFormDialogComponent {
     this.contactsService.list({ search: search || null, pageSize: 20 }).pipe(
       map(res => res.items.map(c => ({ id: c.id, label: c.code, sublabel: c.name })))
     );
+
+  accountLookup: LookupConfig<CashBankAccountListItemDto> = {
+    title: 'Kasa/Banka Hesabı Seç',
+    columns: CASH_BANK_ACCOUNT_LOOKUP_COLUMNS,
+    sortWhitelist: CASH_BANK_ACCOUNT_LOOKUP_SORT_WHITELIST,
+    searchPlaceholder: 'Kod veya ad ile ara...',
+    fetcher: (q) => this.cashBankAccountsService.list(q),
+    toOption: cashBankAccountToOption
+  };
+
+  contactLookup: LookupConfig<ContactListItemDto> = {
+    title: 'Cari Seç',
+    columns: CONTACT_LOOKUP_COLUMNS,
+    sortWhitelist: CONTACT_LOOKUP_SORT_WHITELIST,
+    searchPlaceholder: 'Kod, ad veya e-posta ile ara...',
+    fetcher: (q) => this.contactsService.list(q),
+    toOption: contactToOption
+  };
 
   onAccountSelected(id: number | null) {
     this.form.patchValue({ accountId: id });

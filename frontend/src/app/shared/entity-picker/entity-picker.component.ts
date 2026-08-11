@@ -1,16 +1,37 @@
-import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MatDialog } from '@angular/material/dialog';
+import { ColDef } from 'ag-grid-community';
 import { Observable, of } from 'rxjs';
 import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { PagedResult } from '../list-grid/list-grid.component';
+import { LookupDialogComponent, LookupDialogData, LookupQuery } from '../lookup-dialog/lookup-dialog.component';
 
 export interface PickerOption {
   id: number;
   label: string;
   sublabel?: string | null;
+}
+
+/**
+ * Binlerce kayıt olabilecek listelerde (stok kartı, cari, kasa/banka vb.) top-N autocomplete'e
+ * ek olarak sayfalama+aramalı LookupDialogComponent açan yapılandırma. `fetcher` burada
+ * ListGridComponent'in beklediği sayfalı/sıralı kontrata `search` eklenmiş halidir — genelde
+ * doğrudan ilgili servisin `list()` metoduyla eşleşir (örn. `(q) => itemsService.list(q)`).
+ */
+export interface LookupConfig<T = unknown> {
+  title: string;
+  columns: ColDef<T>[];
+  fetcher: (q: LookupQuery) => Observable<PagedResult<T>>;
+  toOption: (row: T) => PickerOption;
+  sortWhitelist?: string[];
+  searchPlaceholder?: string;
 }
 
 /**
@@ -20,7 +41,7 @@ export interface PickerOption {
 @Component({
   standalone: true,
   selector: 'app-entity-picker',
-  imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatAutocompleteModule],
+  imports: [CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule, MatAutocompleteModule, MatIconModule, MatButtonModule],
   template: `
     <mat-form-field appearance="outline" [style.width]="width">
       <mat-label>{{ label }}</mat-label>
@@ -31,6 +52,11 @@ export interface PickerOption {
         (focus)="ensureLoaded()"
         [placeholder]="placeholder ?? ''"
       />
+      @if (lookup) {
+        <button mat-icon-button matSuffix type="button" tabindex="-1" (click)="openLookup()" title="Listeden seç (sayfalama/arama)">
+          <mat-icon>search</mat-icon>
+        </button>
+      }
       <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayWith" (optionSelected)="onSelected($event)">
         @for (opt of options; track opt.id) {
           <mat-option [value]="opt">
@@ -55,7 +81,16 @@ export class EntityPickerComponent implements OnInit, OnChanges {
   @Input() initialLabel: string | null = null;
   @Input() width = '100%';
   @Input() placeholder: string | null = null;
+  /**
+   * Verilirse alanın yanında, sayfalama+aramalı tam liste dialog'unu açan bir arama ikonu gösterilir.
+   * `any` — çağıranlar somut bir entity tipiyle (örn. LookupConfig<ContactListItemDto>) bağlar;
+   * Angular'ın strict template derlemesi ColDef<T>'nin invariant alanları (örn. `field`) yüzünden
+   * LookupConfig<Concrete>'i LookupConfig<unknown>'a atamayı reddediyor.
+   */
+  @Input() lookup?: LookupConfig<any>;
   @Output() valueChange = new EventEmitter<number | null>();
+
+  private dialog = inject(MatDialog);
 
   control = new FormControl<string | PickerOption>('');
   options: PickerOption[] = [];
@@ -111,6 +146,27 @@ export class EntityPickerComponent implements OnInit, OnChanges {
   onSelected(e: MatAutocompleteSelectedEvent) {
     const opt = e.option.value as PickerOption;
     this.valueChange.emit(opt.id);
+  }
+
+  openLookup() {
+    const cfg = this.lookup;
+    if (!cfg) return;
+    const ref = this.dialog.open<LookupDialogComponent<unknown>, LookupDialogData<unknown>>(LookupDialogComponent, {
+      data: {
+        title: cfg.title,
+        columns: cfg.columns,
+        fetcher: cfg.fetcher,
+        sortWhitelist: cfg.sortWhitelist,
+        searchPlaceholder: cfg.searchPlaceholder
+      }
+    });
+    ref.afterClosed().subscribe(row => {
+      if (!row) return;
+      const opt = cfg.toOption(row);
+      this.control.setValue(opt, { emitEvent: false });
+      this.loaded = true;
+      this.valueChange.emit(opt.id);
+    });
   }
 
   private toSearchTerm(v: string | PickerOption | null): string {

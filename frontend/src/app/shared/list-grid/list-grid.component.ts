@@ -1,10 +1,10 @@
-import { Component, Input, OnInit, signal, computed } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AgGridAngular } from 'ag-grid-angular';
 import { AG_THEME } from '../../core/ag-grid/ag-theme';
 import {
   ColDef, GridApi, GridOptions, GridReadyEvent,
-  ColumnState
+  ColumnState, RowDoubleClickedEvent
 } from 'ag-grid-community';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -47,6 +47,7 @@ export interface ListQuery { pageNumber?: number; pageSize?: number; sort?: stri
             [context]="context"
             (gridReady)="onGridReady($event)"
             (sortChanged)="onSortChanged()"
+            (rowDoubleClicked)="onRowDoubleClicked($event)"
           ></ag-grid-angular>
         </div>
 
@@ -92,6 +93,8 @@ export class ListGridComponent<T> implements OnInit {
   @Input() pageSizeInit = 25;
   /** ag-grid cell renderer'ların (örn. entity-actions.cell) erişebileceği context (params.context) */
   @Input() context: any = null;
+  /** Bir satıra çift tıklandığında satır verisiyle tetiklenir (örn. lookup dialog seçimi) */
+  @Output() rowDoubleClicked = new EventEmitter<T>();
 
   pageNumber = signal(1);
   pageSize = signal(this.pageSizeInit);
@@ -119,9 +122,19 @@ export class ListGridComponent<T> implements OnInit {
     }
   };
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    // pageSize signal'i field initializer'da (constructor sırasında, Angular @Input
+    // pageSizeInit'i henüz set etmeden) this.pageSizeInit'in default değeriyle kuruluyor;
+    // burada ngOnInit'te (input'lar set edildikten sonra) gerçek değerle senkronluyoruz.
+    this.pageSize.set(this.pageSizeInit);
+    this.load();
+  }
 
   onGridReady(e: GridReadyEvent<T>) { this.api = e.api; }
+
+  onRowDoubleClicked(e: RowDoubleClickedEvent<T>) {
+    if (e.data) this.rowDoubleClicked.emit(e.data);
+  }
 
   onSortChanged() {
     const state = (this.api.getColumnState() ?? []) as ColumnState[];

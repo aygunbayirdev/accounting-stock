@@ -6,8 +6,10 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { Observable, map } from 'rxjs';
-import { EntityPickerComponent, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import { EntityPickerComponent, LookupConfig, PickerOption } from '../../shared/entity-picker/entity-picker.component';
+import { CASH_BANK_ACCOUNT_LOOKUP_COLUMNS, CASH_BANK_ACCOUNT_LOOKUP_SORT_WHITELIST, cashBankAccountToOption } from '../../shared/entity-picker/lookup-configs';
 import { CashBankAccountsService } from '../../core/services/cash-bank-accounts.service';
+import { CashBankAccountListItemDto } from '../../core/models/cash-bank-account.models';
 import { ChequeDetailDto } from '../../core/models/cheque.models';
 
 export interface ChequeCashDialogData {
@@ -33,6 +35,7 @@ export interface ChequeCashDialogData {
         <app-entity-picker
           label="Kasa/Banka Hesabı"
           [fetcher]="accountFetcher"
+          [lookup]="accountLookup"
           [value]="form.value.cashBankAccountId ?? null"
           [width]="'100%'"
           (valueChange)="onAccountSelected($event)">
@@ -69,6 +72,15 @@ export class ChequeCashDialogComponent {
     this.cashBankAccountsService.list({ search: search || null, pageSize: 20 }).pipe(
       map(res => res.items.map(a => ({ id: a.id, label: a.code, sublabel: `${a.name} (${a.currency})` })))
     );
+
+  accountLookup: LookupConfig<CashBankAccountListItemDto> = {
+    title: 'Kasa/Banka Hesabı Seç',
+    columns: CASH_BANK_ACCOUNT_LOOKUP_COLUMNS,
+    sortWhitelist: CASH_BANK_ACCOUNT_LOOKUP_SORT_WHITELIST,
+    searchPlaceholder: 'Kod veya ad ile ara...',
+    fetcher: (q) => this.cashBankAccountsService.list(q),
+    toOption: cashBankAccountToOption
+  };
 
   onAccountSelected(id: number | null) {
     this.form.patchValue({ cashBankAccountId: id });
