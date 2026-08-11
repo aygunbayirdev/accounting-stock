@@ -7,7 +7,7 @@ import { ICellRendererParams } from 'ag-grid-community';
 import { OrderListItemDto, OrderStatus } from '../../core/models/order.models';
 import { PermissionService } from '../../core/services/permission.service';
 
-export interface OrderActionsContext<T = any> {
+export interface OrderActionsContext<T = unknown> {
   onApprove?: (row: T) => void;
   onCancel?: (row: T) => void;
   onConvertToInvoice?: (row: T) => void;

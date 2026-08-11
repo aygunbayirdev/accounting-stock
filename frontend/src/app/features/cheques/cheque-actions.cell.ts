@@ -6,7 +6,7 @@ import { ICellRendererParams } from 'ag-grid-community';
 import { ChequeDetailDto } from '../../core/models/cheque.models';
 import { PermissionService } from '../../core/services/permission.service';
 
-export interface ChequeActionsContext<T = any> {
+export interface ChequeActionsContext<T = unknown> {
   onCash?: (row: T) => void;
   onEndorse?: (row: T) => void;
   onBounce?: (row: T) => void;

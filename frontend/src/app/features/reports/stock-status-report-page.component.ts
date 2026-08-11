@@ -38,6 +38,12 @@ import { StockStatusDto } from '../../core/models/report.models';
       <div class="loading">
         <mat-spinner diameter="36"></mat-spinner>
       </div>
+    } @else if (error) {
+      <div class="error-state">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ error }}</span>
+        <button mat-button (click)="reload()">Tekrar Dene</button>
+      </div>
     } @else if (filteredRows().length === 0) {
       <p class="empty">{{ rows.length === 0 ? 'Aktif ürün bulunmuyor.' : 'Arama kriterine uyan ürün bulunamadı.' }}</p>
     } @else {
@@ -80,6 +86,12 @@ import { StockStatusDto } from '../../core/models/report.models';
 
     .loading { display:flex; justify-content:center; padding: 48px 0; }
     .empty { color: rgba(0,0,0,0.6); }
+    .error-state {
+      display:flex; align-items:center; gap:10px;
+      padding: 16px; border-radius: 8px; max-width: 600px;
+      background: rgba(198,40,40,0.08); color: #c62828;
+    }
+    .error-state span { flex:1; }
 
     .table-wrap { overflow-x: auto; }
     .stock-table { width: 100%; border-collapse: collapse; min-width: 640px; }
@@ -93,6 +105,7 @@ export class StockStatusReportPageComponent implements OnInit {
   rows: StockStatusDto[] = [];
   search = '';
   loading = false;
+  error: string | null = null;
   exporting = false;
 
   constructor(
@@ -101,14 +114,21 @@ export class StockStatusReportPageComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.reload();
+  }
+
+  reload(): void {
     this.loading = true;
+    this.error = null;
     this.reportsService.getStockStatus().subscribe({
       next: res => {
         this.rows = res;
         this.loading = false;
       },
       error: () => {
+        this.rows = [];
         this.loading = false;
+        this.error = 'Stok durumu yüklenirken bir hata oluştu.';
       }
     });
   }

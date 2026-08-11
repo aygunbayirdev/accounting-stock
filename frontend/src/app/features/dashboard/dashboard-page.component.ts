@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatButtonModule } from '@angular/material/button';
 import { ReportsService } from '../../core/services/reports.service';
 import { BranchesService } from '../../core/services/branches.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -17,7 +18,7 @@ import { BranchListItemDto } from '../../core/models/branch.models';
   selector: 'app-dashboard-page',
   imports: [
     CommonModule, FormsModule, MatCardModule, MatIconModule,
-    MatFormFieldModule, MatSelectModule, MatProgressSpinnerModule
+    MatFormFieldModule, MatSelectModule, MatProgressSpinnerModule, MatButtonModule
   ],
   template: `
     <div class="toolbar">
@@ -38,6 +39,12 @@ import { BranchListItemDto } from '../../core/models/branch.models';
     @if (loading) {
       <div class="loading">
         <mat-spinner diameter="36"></mat-spinner>
+      </div>
+    } @else if (error) {
+      <div class="error-state">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ error }}</span>
+        <button mat-button (click)="load()">Tekrar Dene</button>
       </div>
     } @else if (stats) {
       <div class="summary-grid">
@@ -111,6 +118,12 @@ import { BranchListItemDto } from '../../core/models/branch.models';
     .branch-field { min-width: 240px; margin-bottom: -1.25em; }
 
     .loading { display:flex; justify-content:center; padding: 48px 0; }
+    .error-state {
+      display:flex; align-items:center; gap:10px;
+      padding: 16px; border-radius: 8px; max-width: 600px;
+      background: rgba(198,40,40,0.08); color: #c62828;
+    }
+    .error-state span { flex:1; }
 
     .summary-grid {
       display: grid;
@@ -150,6 +163,7 @@ export class DashboardPageComponent implements OnInit {
   branchId: number | null = null;
   stats: DashboardStatsDto | null = null;
   loading = false;
+  error: string | null = null;
   showBranchSelector = false;
 
   constructor(
@@ -172,13 +186,16 @@ export class DashboardPageComponent implements OnInit {
   load(): void {
     if (this.branchId == null) return;
     this.loading = true;
+    this.error = null;
     this.reportsService.getDashboard(this.branchId).subscribe({
       next: stats => {
         this.stats = stats;
         this.loading = false;
       },
       error: () => {
+        this.stats = null;
         this.loading = false;
+        this.error = 'Dashboard verileri yüklenirken bir hata oluştu.';
       }
     });
   }

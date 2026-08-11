@@ -5,7 +5,7 @@ import { ICellRendererAngularComp } from 'ag-grid-angular';
 import { ICellRendererParams } from 'ag-grid-community';
 import { PermissionService } from '../../core/services/permission.service';
 
-export interface EntityActionsContext<T = any> {
+export interface EntityActionsContext<T = unknown> {
   onEdit?: (row: T) => void;
   onDelete?: (row: T) => void;
   /** Belirtilirse Düzenle butonu sadece bu izne sahip kullanıcıya gösterilir. */

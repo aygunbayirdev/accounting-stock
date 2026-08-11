@@ -7,6 +7,8 @@ import {
   ColumnState
 } from 'ag-grid-community';
 import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Observable } from 'rxjs';
 
 export interface PagedResult<T> { items: T[]; total: number; }
@@ -15,7 +17,7 @@ export interface ListQuery { pageNumber?: number; pageSize?: number; sort?: stri
 @Component({
   standalone: true,
   selector: 'app-list-grid',
-  imports: [CommonModule, AgGridAngular, MatButtonModule],
+  imports: [CommonModule, AgGridAngular, MatButtonModule, MatIconModule, MatProgressSpinnerModule],
   template: `
     <div class="page">
       <div class="toolbar">
@@ -24,23 +26,36 @@ export interface ListQuery { pageNumber?: number; pageSize?: number; sort?: stri
         <button mat-stroked-button (click)="reload()">Yenile</button>
       </div>
 
-      <div class="grid-host">
-        <ag-grid-angular
-          [theme]="AG_THEME"
-          [rowData]="rows()"
-          [columnDefs]="columns"
-          [gridOptions]="gridOptions"
-          [context]="context"
-          (gridReady)="onGridReady($event)"
-          (sortChanged)="onSortChanged()"
-        ></ag-grid-angular>
-      </div>
+      @if (error()) {
+        <div class="list-error">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ error() }}</span>
+          <button mat-button (click)="reload()">Tekrar Dene</button>
+        </div>
+      } @else {
+        @if (loading()) {
+          <div class="list-loading">
+            <mat-spinner diameter="32"></mat-spinner>
+          </div>
+        }
+        <div class="grid-host" [class.hidden]="loading()">
+          <ag-grid-angular
+            [theme]="AG_THEME"
+            [rowData]="rows()"
+            [columnDefs]="columns"
+            [gridOptions]="gridOptions"
+            [context]="context"
+            (gridReady)="onGridReady($event)"
+            (sortChanged)="onSortChanged()"
+          ></ag-grid-angular>
+        </div>
 
-      <div class="pager">
-        <button mat-button (click)="prevPage()" [disabled]="pageNumber()===1">Önceki</button>
-        <span>Sayfa {{pageNumber()}}</span>
-        <button mat-button (click)="nextPage()" [disabled]="!hasMore()">Sonraki</button>
-      </div>
+        <div class="pager">
+          <button mat-button (click)="prevPage()" [disabled]="pageNumber()===1">Önceki</button>
+          <span>Sayfa {{pageNumber()}}</span>
+          <button mat-button (click)="nextPage()" [disabled]="!hasMore()">Sonraki</button>
+        </div>
+      }
     </div>
   `,
   styles: [`
@@ -49,6 +64,14 @@ export interface ListQuery { pageNumber?: number; pageSize?: number; sort?: stri
     .title { font-weight:600; }
     .spacer { flex:1; }
     .pager { display:flex; gap:8px; align-items:center; justify-content:flex-end; }
+    .grid-host.hidden { display:none; }
+    .list-loading { display:flex; justify-content:center; padding: 48px 0; }
+    .list-error {
+      display:flex; align-items:center; gap:10px;
+      padding: 16px; border-radius: 8px;
+      background: rgba(198,40,40,0.08); color: #c62828;
+    }
+    .list-error span { flex:1; }
   `]
 })
 export class ListGridComponent<T> implements OnInit {
@@ -76,6 +99,8 @@ export class ListGridComponent<T> implements OnInit {
 
   rows = signal<T[]>([]);
   total = signal(0);
+  loading = signal(false);
+  error = signal<string | null>(null);
   hasMore = computed(() => this.pageNumber() * this.pageSize() < this.total());
 
   private api!: GridApi<T>;
@@ -88,6 +113,7 @@ export class ListGridComponent<T> implements OnInit {
     // ve framework cellRenderer'lar (entity-actions.cell, invoice-actions.cell, line-actions.cell)
     // sonsuza kadar boş kalır. Senkron oluşturmaya zorluyoruz — bu ölçekteki listeler için maliyeti yok.
     suppressAnimationFrame: true,
+    overlayNoRowsTemplate: '<span style="padding: 8px 12px; color: rgba(0,0,0,0.6);">Kayıt bulunamadı.</span>',
     columnTypes: {
       rightAligned: { cellClass: 'ag-right-aligned-cell' }
     }
@@ -117,13 +143,24 @@ export class ListGridComponent<T> implements OnInit {
   private load() {
     const sort = this.sortModel();
     const sortParam = sort?.map(s => `${s.colId}:${s.sort}`).join(',') ?? '';
+    this.loading.set(true);
+    this.error.set(null);
     this.fetcher({
       pageNumber: this.pageNumber(),
       pageSize: this.pageSize(),
       sort: sortParam || undefined
-    }).subscribe(res => {
-      this.rows.set(res.items ?? []);
-      this.total.set(res.total ?? 0);
+    }).subscribe({
+      next: res => {
+        this.rows.set(res.items ?? []);
+        this.total.set(res.total ?? 0);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.rows.set([]);
+        this.total.set(0);
+        this.loading.set(false);
+        this.error.set('Kayıtlar yüklenirken bir hata oluştu.');
+      }
     });
   }
 }

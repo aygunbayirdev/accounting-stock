@@ -5,6 +5,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CompanySettingsService } from '../../core/services/company-settings.service';
 import { CompanySettingsDto } from '../../core/models/company-settings.models';
@@ -16,9 +17,14 @@ import { HasPermissionDirective } from '../../shared/directives/has-permission.d
   selector: 'app-company-settings-page',
   imports: [
     CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatCardModule, HasPermissionDirective
+    MatButtonModule, MatCardModule, MatIconModule, HasPermissionDirective
   ],
   template: `
+    <div class="error-state" *ngIf="error">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ error }}</span>
+      <button mat-button (click)="load()">Tekrar Dene</button>
+    </div>
     <mat-card class="settings-card" *ngIf="loaded">
       <mat-card-header>
         <mat-card-title>Firma Ayarları</mat-card-title>
@@ -79,6 +85,12 @@ import { HasPermissionDirective } from '../../shared/directives/has-permission.d
     .grid { display:grid; grid-template-columns: repeat(2, minmax(260px, 1fr)); gap: 8px 16px; }
     .grid .full { grid-column: 1 / -1; }
     .actions { display:flex; justify-content:flex-end; padding-top: 8px; }
+    .error-state {
+      display:flex; align-items:center; gap:10px;
+      padding: 16px; border-radius: 8px; max-width: 600px; margin: 16px 0;
+      background: rgba(198,40,40,0.08); color: #c62828;
+    }
+    .error-state span { flex:1; }
   `]
 })
 export class CompanySettingsPageComponent implements OnInit {
@@ -89,6 +101,7 @@ export class CompanySettingsPageComponent implements OnInit {
 
   loaded = false;
   saving = false;
+  error: string | null = null;
   private current!: CompanySettingsDto;
 
   form = this.fb.group({
@@ -105,23 +118,34 @@ export class CompanySettingsPageComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.service.get().subscribe(dto => {
-      this.current = dto;
-      this.form.patchValue({
-        title: dto.title,
-        taxNumber: dto.taxNumber ?? '',
-        taxOffice: dto.taxOffice ?? '',
-        address: dto.address ?? '',
-        phone: dto.phone ?? '',
-        email: dto.email ?? '',
-        website: dto.website ?? '',
-        tradeRegisterNo: dto.tradeRegisterNo ?? '',
-        mersisNo: dto.mersisNo ?? '',
-        logoUrl: dto.logoUrl ?? ''
-      });
-      this.loaded = true;
-      if (!this.permissionService.has('CompanySettings.Update')) {
-        this.form.disable();
+    this.load();
+  }
+
+  load() {
+    this.error = null;
+    this.service.get().subscribe({
+      next: dto => {
+        this.current = dto;
+        this.form.patchValue({
+          title: dto.title,
+          taxNumber: dto.taxNumber ?? '',
+          taxOffice: dto.taxOffice ?? '',
+          address: dto.address ?? '',
+          phone: dto.phone ?? '',
+          email: dto.email ?? '',
+          website: dto.website ?? '',
+          tradeRegisterNo: dto.tradeRegisterNo ?? '',
+          mersisNo: dto.mersisNo ?? '',
+          logoUrl: dto.logoUrl ?? ''
+        });
+        this.loaded = true;
+        if (!this.permissionService.has('CompanySettings.Update')) {
+          this.form.disable();
+        }
+      },
+      error: () => {
+        this.loaded = false;
+        this.error = 'Firma ayarları yüklenirken bir hata oluştu.';
       }
     });
   }
