@@ -609,11 +609,11 @@ public static class DataSeeder
 
         var accounts = new List<CashBankAccount>
         {
-            new() { BranchId = branchIds[0 % branchIds.Count], Code = "KASA01", Name = "Merkez Kasa", Currency = "TRY", Balance = 0m, CreatedAtUtc = now },
-            new() { BranchId = branchIds[0 % branchIds.Count], Code = "BANKA01", Name = "İş Bankası TL Hesabı", Currency = "TRY", Balance = 0m, CreatedAtUtc = now },
-            new() { BranchId = branchIds[0 % branchIds.Count], Code = "BANKA02", Name = "Garanti USD Hesabı", Currency = "USD", Balance = 0m, CreatedAtUtc = now },
-            new() { BranchId = branchIds[1 % branchIds.Count], Code = "KASA02", Name = "Ankara Kasa", Currency = "TRY", Balance = 0m, CreatedAtUtc = now },
-            new() { BranchId = branchIds[2 % branchIds.Count], Code = "KASA03", Name = "İzmir Kasa", Currency = "TRY", Balance = 0m, CreatedAtUtc = now }
+            new() { BranchId = branchIds[0 % branchIds.Count], Code = "KASA01", Name = "Merkez Kasa", Type = CashBankAccountType.Cash, Currency = "TRY", Balance = 0m, CreatedAtUtc = now },
+            new() { BranchId = branchIds[0 % branchIds.Count], Code = "BANKA01", Name = "İş Bankası TL Hesabı", Type = CashBankAccountType.Bank, Currency = "TRY", Balance = 0m, CreatedAtUtc = now },
+            new() { BranchId = branchIds[0 % branchIds.Count], Code = "BANKA02", Name = "Garanti USD Hesabı", Type = CashBankAccountType.Bank, Currency = "USD", Balance = 0m, CreatedAtUtc = now },
+            new() { BranchId = branchIds[1 % branchIds.Count], Code = "KASA02", Name = "Ankara Kasa", Type = CashBankAccountType.Cash, Currency = "TRY", Balance = 0m, CreatedAtUtc = now },
+            new() { BranchId = branchIds[2 % branchIds.Count], Code = "KASA03", Name = "İzmir Kasa", Type = CashBankAccountType.Cash, Currency = "TRY", Balance = 0m, CreatedAtUtc = now }
         };
 
         db.CashBankAccounts.AddRange(accounts);
@@ -631,7 +631,12 @@ public static class DataSeeder
         CancellationToken ct)
     {
         if (await db.Stocks.AnyAsync(ct)) return;
-        if (!itemsAll.Any()) return;
+
+        // Sadece fiziksel/stoklu ürünler depo stoku taşır — Hizmet/Masraf/Demirbaş
+        // kalemleri için "stok" kavramı anlamsız (ör. "Elektrik Gideri: 381 adet stokta" gibi
+        // demoyu güvenilmez gösteren saçma bir görünüme yol açmasın diye).
+        var trackedItems = itemsAll.Where(x => x.Type == ItemType.Inventory).ToList();
+        if (!trackedItems.Any()) return;
 
         var effectiveBranchIds = branchIds.Count > 0 ? branchIds : new List<int> { 1 };
 
@@ -642,7 +647,7 @@ public static class DataSeeder
         {
             if (!defaultWarehouseByBranch.TryGetValue(branchId, out var warehouse)) continue;
 
-            foreach (var item in itemsAll)
+            foreach (var item in trackedItems)
             {
                 var initialQty = R3(50m + (item.Id * 7) % 100);
 
@@ -686,18 +691,23 @@ public static class DataSeeder
         CancellationToken ct)
     {
         if (await db.Orders.AnyAsync(ct)) return;
-        if (!itemsAll.Any()) return;
+
+        // Siparişler sadece stoklu (Inventory) kalemler üzerinden kurulur — Gider/Hizmet/Demirbaş
+        // sipariş akışının parçası değil.
+        var invItems = itemsAll.Where(x => x.Type == ItemType.Inventory).ToList();
+        if (!invItems.Any()) return;
 
         var effectiveBranchIds = branchIds.Count > 0 ? branchIds : new List<int> { 1 };
 
         var orders = new List<Order>();
 
-        // 5 satış siparişi
+        // 5 satış siparişi — ürün çeşitliliği için kalemler döngüsel seçiliyor
+        // (tek bir ürüne sabitlenmiş bir demo, gerçekçi görünmüyordu)
         for (int i = 1; i <= 5; i++)
         {
             var branchId = effectiveBranchIds[(i - 1) % effectiveBranchIds.Count];
             var customerId = customerIds[(i - 1) % customerIds.Count];
-            var item = itemsAll.First();
+            var item = invItems[(i - 1) % invItems.Count];
 
             var qty = R3(1m + (i % 5));
             var unitPrice = item.SalesPrice ?? R2(100m);
@@ -749,7 +759,7 @@ public static class DataSeeder
         {
             var branchId = effectiveBranchIds[(i - 1) % effectiveBranchIds.Count];
             var vendorId = vendorIds[(i - 1) % vendorIds.Count];
-            var item = itemsAll.First();
+            var item = invItems[(i + 1) % invItems.Count];
 
             var qty = R3(5m + (i * 3));
             var unitPrice = item.PurchasePrice ?? R2(80m);
@@ -804,7 +814,15 @@ public static class DataSeeder
         CancellationToken ct)
     {
         if (await db.Invoices.AnyAsync(ct)) return;
-        if (!itemsAll.Any()) return;
+
+        // Ürün çeşitliliği için satış/alış faturaları tek bir kaleme sabitlenmek yerine
+        // stoklu kalemler arasında döngüsel seçiliyor. Son birkaç alış faturası ise
+        // bilinçli olarak Gider/Hizmet tipinde kalemler kullanır — aksi halde Gelir/Gider
+        // Raporu'ndaki "Faaliyet Giderleri" satırı seed data ile hiçbir zaman 0'ın üzerine
+        // çıkmıyordu (hiçbir alış faturası Gider/Hizmet kalemi içermiyordu).
+        var invItems = itemsAll.Where(x => x.Type == ItemType.Inventory).ToList();
+        var expenseServiceItems = itemsAll.Where(x => x.Type == ItemType.Expense || x.Type == ItemType.Service).ToList();
+        if (!invItems.Any()) return;
 
         var effectiveBranchIds = branchIds.Count > 0 ? branchIds : new List<int> { 1 };
 
@@ -821,9 +839,12 @@ public static class DataSeeder
                 ? customerIds[(i - 1) % customerIds.Count]
                 : vendorIds[(i - 1) % vendorIds.Count];
 
-            var item = itemsAll.First();
+            var useExpenseItem = !isSales && i > 16 && expenseServiceItems.Any();
+            var item = useExpenseItem
+                ? expenseServiceItems[(i - 17) % expenseServiceItems.Count]
+                : invItems[(i - 1) % invItems.Count];
 
-            var qty = R3(1m + (i % 7) * 2);
+            var qty = useExpenseItem ? 1m : R3(1m + (i % 7) * 2);
             var unitPrice = isSales
                 ? (item.SalesPrice ?? R4(100m))
                 : (item.PurchasePrice ?? R4(80m));

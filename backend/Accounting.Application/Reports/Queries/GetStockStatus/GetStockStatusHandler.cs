@@ -1,5 +1,6 @@
 using Accounting.Application.Common.Abstractions;
 using Accounting.Application.Reports.Queries.Dtos;
+using Accounting.Domain.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,10 +10,12 @@ public class GetStockStatusHandler(IAppDbContext db, IStockService stockService)
 {
     public async Task<List<StockStatusDto>> Handle(GetStockStatusQuery request, CancellationToken ct)
     {
-        // 1. Fetch all active items
+        // 1. Fetch all active, stok takibi yapılan (Inventory) kalemler — Gider/Hizmet/Demirbaş
+        // hiçbir zaman depo stoku taşımaz, bu raporda her zaman 0/0/0/0 satırı olarak
+        // görünmeleri gerçek bir stok raporunda kafa karıştırıcı ve gereksiz.
         var items = await db.Items
             .AsNoTracking()
-            .Where(i => !i.IsDeleted)
+            .Where(i => !i.IsDeleted && i.Type == ItemType.Inventory)
             .Select(i => new { i.Id, i.Code, i.Name, i.Unit })
             .OrderBy(i => i.Name)
             .ToListAsync(ct);
