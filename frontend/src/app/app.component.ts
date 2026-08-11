@@ -10,6 +10,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from './core/services/auth.service';
+import { PermissionService } from './core/services/permission.service';
 import { HasPermissionDirective } from './shared/directives/has-permission.directive';
 
 @Component({
@@ -26,9 +27,10 @@ import { HasPermissionDirective } from './shared/directives/has-permission.direc
 })
 export class AppComponent {
   authService = inject(AuthService);
-  
+  permissionService = inject(PermissionService);
+
   opened = signal(true);
-  
+
   // Computed values from auth service
   isAuthenticated = this.authService.isAuthenticated;
   currentUser = this.authService.currentUser;
@@ -38,6 +40,28 @@ export class AppComponent {
     if (!user) return '';
     return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
   });
+
+  // Sidenav grup açık/kapalı durumu
+  muhasebeOpen = signal(true);
+  stokOpen = signal(true);
+  sistemOpen = signal(true);
+
+  // Bir grup, alt öğelerinin hiçbirine izin yoksa hiç gösterilmesin diye
+  // ("Tanımlar"/"Raporlar" alt başlıkları da dahil) izinlere göre hesaplanan görünürlük
+  muhasebeVisible = computed(() => this.permissionService.hasAny([
+    'Payment.Read', 'Invoice.Read', 'Order.Read', 'CashBankAccount.Read', 'Cheque.Read',
+    'Contact.Read', 'Branch.Read', 'Report.ContactStatement', 'Report.ProfitLoss'
+  ]));
+  muhasebeDefsVisible = computed(() => this.permissionService.hasAny(['Contact.Read', 'Branch.Read']));
+  muhasebeReportsVisible = computed(() => this.permissionService.hasAny(['Report.ContactStatement', 'Report.ProfitLoss']));
+
+  stokVisible = computed(() => this.permissionService.hasAny([
+    'Stock.Read', 'StockMovement.Read', 'Item.Read', 'Warehouse.Read', 'Category.Read', 'Report.StockStatus'
+  ]));
+  stokDefsVisible = computed(() => this.permissionService.hasAny(['Item.Read', 'Warehouse.Read', 'Category.Read']));
+  stokReportsVisible = computed(() => this.permissionService.hasAny(['Report.StockStatus']));
+
+  sistemVisible = computed(() => this.permissionService.hasAny(['CompanySettings.Read']) || this.isAdmin());
 
   onLogout(): void {
     this.authService.logout();

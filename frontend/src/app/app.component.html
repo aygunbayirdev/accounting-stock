@@ -7,79 +7,130 @@
           <mat-icon matListItemIcon>space_dashboard</mat-icon>
           <div matListItemTitle>Dashboard</div>
         </a>
-        <a *appHasPermission="'Payment.Read'" mat-list-item routerLink="/payments" routerLinkActive="active">
-          <mat-icon matListItemIcon>account_balance_wallet</mat-icon>
-          <div matListItemTitle>Ödemeler</div>
-        </a>
-        <a *appHasPermission="'Invoice.Read'" mat-list-item routerLink="/invoices" routerLinkActive="active">
-          <mat-icon matListItemIcon>description</mat-icon>
-          <div matListItemTitle>Faturalar</div>
-        </a>
-        <a *appHasPermission="'Order.Read'" mat-list-item routerLink="/orders" routerLinkActive="active">
-          <mat-icon matListItemIcon>shopping_cart</mat-icon>
-          <div matListItemTitle>Siparişler</div>
-        </a>
-        <a *appHasPermission="'Item.Read'" mat-list-item routerLink="/items" routerLinkActive="active" style="display: flex !important; align-items: center !important;">
-          <mat-icon matListItemIcon>inventory</mat-icon>
-          <div matListItemTitle>Stok Kartları</div>
-        </a>
-        <a *appHasPermission="'Contact.Read'" mat-list-item routerLink="/contacts" routerLinkActive="active">
-          <mat-icon matListItemIcon>groups</mat-icon>
-          <div matListItemTitle>Cariler</div>
-        </a>
-        <a *appHasPermission="'Branch.Read'" mat-list-item routerLink="/branches" routerLinkActive="active">
-          <mat-icon matListItemIcon>store</mat-icon>
-          <div matListItemTitle>Şubeler</div>
-        </a>
-        <a *appHasPermission="'Warehouse.Read'" mat-list-item routerLink="/warehouses" routerLinkActive="active">
-          <mat-icon matListItemIcon>warehouse</mat-icon>
-          <div matListItemTitle>Depolar</div>
-        </a>
-        <a *appHasPermission="'CashBankAccount.Read'" mat-list-item routerLink="/cash-bank-accounts" routerLinkActive="active">
-          <mat-icon matListItemIcon>account_balance</mat-icon>
-          <div matListItemTitle>Kasa/Banka</div>
-        </a>
-        <a *appHasPermission="'Cheque.Read'" mat-list-item routerLink="/cheques" routerLinkActive="active">
-          <mat-icon matListItemIcon>receipt</mat-icon>
-          <div matListItemTitle>Çek/Senet</div>
-        </a>
-        <a *appHasPermission="'Report.ContactStatement'" mat-list-item routerLink="/reports/contact-statement" routerLinkActive="active">
-          <mat-icon matListItemIcon>assignment</mat-icon>
-          <div matListItemTitle>Cari Ekstre</div>
-        </a>
-        <a *appHasPermission="'Report.StockStatus'" mat-list-item routerLink="/reports/stock-status" routerLinkActive="active">
-          <mat-icon matListItemIcon>assessment</mat-icon>
-          <div matListItemTitle>Stok Raporu</div>
-        </a>
-        <a *appHasPermission="'Report.ProfitLoss'" mat-list-item routerLink="/reports/income-expense" routerLinkActive="active">
-          <mat-icon matListItemIcon>insights</mat-icon>
-          <div matListItemTitle>Gelir/Gider Raporu</div>
-        </a>
-        <a *appHasPermission="'Stock.Read'" mat-list-item routerLink="/stocks" routerLinkActive="active">
-          <mat-icon matListItemIcon>inventory_2</mat-icon>
-          <div matListItemTitle>Stok Durumu</div>
-        </a>
-        <a *appHasPermission="'StockMovement.Read'" mat-list-item routerLink="/stock-movements" routerLinkActive="active">
-          <mat-icon matListItemIcon>sync_alt</mat-icon>
-          <div matListItemTitle>Stok Hareketleri</div>
-        </a>
-        <a *appHasPermission="'Category.Read'" mat-list-item routerLink="/categories" routerLinkActive="active">
-          <mat-icon matListItemIcon>sell</mat-icon>
-          <div matListItemTitle>Kategoriler</div>
-        </a>
-        <a *appHasPermission="'CompanySettings.Read'" mat-list-item routerLink="/company-settings" routerLinkActive="active">
-          <mat-icon matListItemIcon>settings</mat-icon>
-          <div matListItemTitle>Firma Ayarları</div>
-        </a>
-        @if (isAdmin()) {
-          <a mat-list-item routerLink="/users" routerLinkActive="active">
-            <mat-icon matListItemIcon>manage_accounts</mat-icon>
-            <div matListItemTitle>Kullanıcılar</div>
-          </a>
-          <a mat-list-item routerLink="/roles" routerLinkActive="active">
-            <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
-            <div matListItemTitle>Roller</div>
-          </a>
+        @if (muhasebeVisible()) {
+          <button type="button" mat-list-item class="group-header" (click)="muhasebeOpen.set(!muhasebeOpen())">
+            <mat-icon matListItemIcon>account_balance</mat-icon>
+            <div matListItemTitle>Muhasebe</div>
+            <mat-icon class="chevron">{{ muhasebeOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+          @if (muhasebeOpen()) {
+            <div class="group-items">
+              <a *appHasPermission="'Payment.Read'" mat-list-item routerLink="/payments" routerLinkActive="active" class="sub-item">
+                <mat-icon matListItemIcon>account_balance_wallet</mat-icon>
+                <div matListItemTitle>Ödemeler</div>
+              </a>
+              <a *appHasPermission="'Invoice.Read'" mat-list-item routerLink="/invoices" routerLinkActive="active" class="sub-item">
+                <mat-icon matListItemIcon>description</mat-icon>
+                <div matListItemTitle>Faturalar</div>
+              </a>
+              <a *appHasPermission="'Order.Read'" mat-list-item routerLink="/orders" routerLinkActive="active" class="sub-item">
+                <mat-icon matListItemIcon>shopping_cart</mat-icon>
+                <div matListItemTitle>Siparişler</div>
+              </a>
+              <a *appHasPermission="'CashBankAccount.Read'" mat-list-item routerLink="/cash-bank-accounts" routerLinkActive="active" class="sub-item">
+                <mat-icon matListItemIcon>account_balance</mat-icon>
+                <div matListItemTitle>Kasa/Banka</div>
+              </a>
+              <a *appHasPermission="'Cheque.Read'" mat-list-item routerLink="/cheques" routerLinkActive="active" class="sub-item">
+                <mat-icon matListItemIcon>receipt</mat-icon>
+                <div matListItemTitle>Çek/Senet</div>
+              </a>
+
+              @if (muhasebeDefsVisible()) {
+                <div class="sub-header">Tanımlar</div>
+                <a *appHasPermission="'Contact.Read'" mat-list-item routerLink="/contacts" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>groups</mat-icon>
+                  <div matListItemTitle>Cariler</div>
+                </a>
+                <a *appHasPermission="'Branch.Read'" mat-list-item routerLink="/branches" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>store</mat-icon>
+                  <div matListItemTitle>Şubeler</div>
+                </a>
+              }
+
+              @if (muhasebeReportsVisible()) {
+                <div class="sub-header">Raporlar</div>
+                <a *appHasPermission="'Report.ContactStatement'" mat-list-item routerLink="/reports/contact-statement" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>assignment</mat-icon>
+                  <div matListItemTitle>Cari Ekstre</div>
+                </a>
+                <a *appHasPermission="'Report.ProfitLoss'" mat-list-item routerLink="/reports/income-expense" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>insights</mat-icon>
+                  <div matListItemTitle>Gelir/Gider Raporu</div>
+                </a>
+              }
+            </div>
+          }
+        }
+
+        @if (stokVisible()) {
+          <button type="button" mat-list-item class="group-header" (click)="stokOpen.set(!stokOpen())">
+            <mat-icon matListItemIcon>warehouse</mat-icon>
+            <div matListItemTitle>Stok Yönetimi</div>
+            <mat-icon class="chevron">{{ stokOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+          @if (stokOpen()) {
+            <div class="group-items">
+              <a *appHasPermission="'Stock.Read'" mat-list-item routerLink="/stocks" routerLinkActive="active" class="sub-item">
+                <mat-icon matListItemIcon>inventory_2</mat-icon>
+                <div matListItemTitle>Stok Durumu</div>
+              </a>
+              <a *appHasPermission="'StockMovement.Read'" mat-list-item routerLink="/stock-movements" routerLinkActive="active" class="sub-item">
+                <mat-icon matListItemIcon>sync_alt</mat-icon>
+                <div matListItemTitle>Stok Hareketleri</div>
+              </a>
+
+              @if (stokDefsVisible()) {
+                <div class="sub-header">Tanımlar</div>
+                <a *appHasPermission="'Item.Read'" mat-list-item routerLink="/items" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>inventory</mat-icon>
+                  <div matListItemTitle>Stok Kartları</div>
+                </a>
+                <a *appHasPermission="'Warehouse.Read'" mat-list-item routerLink="/warehouses" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>warehouse</mat-icon>
+                  <div matListItemTitle>Depolar</div>
+                </a>
+                <a *appHasPermission="'Category.Read'" mat-list-item routerLink="/categories" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>sell</mat-icon>
+                  <div matListItemTitle>Kategoriler</div>
+                </a>
+              }
+
+              @if (stokReportsVisible()) {
+                <div class="sub-header">Raporlar</div>
+                <a *appHasPermission="'Report.StockStatus'" mat-list-item routerLink="/reports/stock-status" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>assessment</mat-icon>
+                  <div matListItemTitle>Stok Raporu</div>
+                </a>
+              }
+            </div>
+          }
+        }
+
+        @if (sistemVisible()) {
+          <button type="button" mat-list-item class="group-header" (click)="sistemOpen.set(!sistemOpen())">
+            <mat-icon matListItemIcon>settings</mat-icon>
+            <div matListItemTitle>Sistem</div>
+            <mat-icon class="chevron">{{ sistemOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+          @if (sistemOpen()) {
+            <div class="group-items">
+              <a *appHasPermission="'CompanySettings.Read'" mat-list-item routerLink="/company-settings" routerLinkActive="active" class="sub-item">
+                <mat-icon matListItemIcon>settings</mat-icon>
+                <div matListItemTitle>Firma Ayarları</div>
+              </a>
+              @if (isAdmin()) {
+                <a mat-list-item routerLink="/users" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>manage_accounts</mat-icon>
+                  <div matListItemTitle>Kullanıcılar</div>
+                </a>
+                <a mat-list-item routerLink="/roles" routerLinkActive="active" class="sub-item">
+                  <mat-icon matListItemIcon>admin_panel_settings</mat-icon>
+                  <div matListItemTitle>Roller</div>
+                </a>
+              }
+            </div>
+          }
         }
       </mat-nav-list>
     </mat-sidenav>

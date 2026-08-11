@@ -39,6 +39,37 @@
   font: var(--mat-sys-title-medium);
 }
 
+/* Sidenav grup başlığı (Muhasebe / Stok Yönetimi / Sistem) */
+.group-header {
+  width: 100%;
+  font-weight: 500;
+
+  .chevron {
+    margin-left: auto;
+    color: var(--mat-sys-on-surface-variant, #666);
+  }
+}
+
+/* Grup altındaki öğe kapsayıcısı */
+.group-items {
+  display: block;
+}
+
+/* Grup içindeki link öğesi — girintili */
+.sub-item {
+  --mdc-list-list-item-leading-icon-start-space: 32px;
+}
+
+/* Grup içi alt bölüm etiketi (Tanımlar / Raporlar) */
+.sub-header {
+  padding: 8px 16px 4px 32px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  color: var(--mat-sys-on-surface-variant, #888);
+}
+
 /* Simple User Info (toolbar'da direkt gösterme) */
 .user-info-simple {
   display: flex;
