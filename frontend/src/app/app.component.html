@@ -8,11 +8,11 @@
           <div matListItemTitle>Dashboard</div>
         </a>
         @if (muhasebeVisible()) {
-          <button type="button" mat-list-item class="group-header" (click)="muhasebeOpen.set(!muhasebeOpen())">
+          <a mat-list-item class="group-header" role="button" tabindex="0" (click)="muhasebeOpen.set(!muhasebeOpen())" (keydown.enter)="muhasebeOpen.set(!muhasebeOpen())" (keydown.space)="$event.preventDefault(); muhasebeOpen.set(!muhasebeOpen())">
             <mat-icon matListItemIcon>account_balance</mat-icon>
             <div matListItemTitle>Muhasebe</div>
-            <mat-icon class="chevron">{{ muhasebeOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
-          </button>
+            <mat-icon matListItemMeta class="chevron">{{ muhasebeOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </a>
           @if (muhasebeOpen()) {
             <div class="group-items">
               <a *appHasPermission="'Payment.Read'" mat-list-item routerLink="/payments" routerLinkActive="active" class="sub-item">
@@ -64,11 +64,11 @@
         }
 
         @if (stokVisible()) {
-          <button type="button" mat-list-item class="group-header" (click)="stokOpen.set(!stokOpen())">
+          <a mat-list-item class="group-header" role="button" tabindex="0" (click)="stokOpen.set(!stokOpen())" (keydown.enter)="stokOpen.set(!stokOpen())" (keydown.space)="$event.preventDefault(); stokOpen.set(!stokOpen())">
             <mat-icon matListItemIcon>warehouse</mat-icon>
             <div matListItemTitle>Stok Yönetimi</div>
-            <mat-icon class="chevron">{{ stokOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
-          </button>
+            <mat-icon matListItemMeta class="chevron">{{ stokOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </a>
           @if (stokOpen()) {
             <div class="group-items">
               <a *appHasPermission="'Stock.Read'" mat-list-item routerLink="/stocks" routerLinkActive="active" class="sub-item">
@@ -108,11 +108,11 @@
         }
 
         @if (sistemVisible()) {
-          <button type="button" mat-list-item class="group-header" (click)="sistemOpen.set(!sistemOpen())">
+          <a mat-list-item class="group-header" role="button" tabindex="0" (click)="sistemOpen.set(!sistemOpen())" (keydown.enter)="sistemOpen.set(!sistemOpen())" (keydown.space)="$event.preventDefault(); sistemOpen.set(!sistemOpen())">
             <mat-icon matListItemIcon>settings</mat-icon>
             <div matListItemTitle>Sistem</div>
-            <mat-icon class="chevron">{{ sistemOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
-          </button>
+            <mat-icon matListItemMeta class="chevron">{{ sistemOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </a>
           @if (sistemOpen()) {
             <div class="group-items">
               <a *appHasPermission="'CompanySettings.Read'" mat-list-item routerLink="/company-settings" routerLinkActive="active" class="sub-item">
