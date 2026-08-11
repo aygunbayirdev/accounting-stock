@@ -9,6 +9,7 @@ import { map } from 'rxjs';
 import { ListGridComponent } from '../../shared/list-grid/list-grid.component';
 import { EntityActionsCell, EntityActionsContext } from '../../shared/list-grid/entity-actions.cell';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { RolesService } from '../../core/services/roles.service';
 import { RoleListItemDto } from '../../core/models/role.models';
 import { RoleFormDialogComponent, RoleFormDialogData } from './role-form-dialog.component';
@@ -17,13 +18,13 @@ import { RoleFormDialogComponent, RoleFormDialogData } from './role-form-dialog.
   standalone: true,
   selector: 'app-roles-page',
   imports: [
-    CommonModule, MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent
+    CommonModule, MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent, HasPermissionDirective
   ],
   template: `
     <div class="toolbar">
       <span class="title">Roller</span>
       <span class="spacer"></span>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'Role.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Rol
       </button>
@@ -60,7 +61,9 @@ export class RolesPageComponent {
 
   gridContext: EntityActionsContext<RoleListItemDto> = {
     onEdit: (row) => this.openEdit(row),
-    onDelete: (row) => this.confirmDelete(row)
+    onDelete: (row) => this.confirmDelete(row),
+    updatePermission: 'Role.Update',
+    deletePermission: 'Role.Delete'
   };
 
   @ViewChild('grid') grid!: ListGridComponent<RoleListItemDto>;

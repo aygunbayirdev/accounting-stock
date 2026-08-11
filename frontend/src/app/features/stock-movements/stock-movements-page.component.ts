@@ -22,23 +22,24 @@ import { WarehousesService } from '../../core/services/warehouses.service';
 import { WarehouseListItemDto } from '../../core/models/warehouse.models';
 import { StockMovementFormDialogComponent } from './stock-movement-form-dialog.component';
 import { StockTransferDialogComponent } from './stock-transfer-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   standalone: true,
   selector: 'app-stock-movements-page',
   imports: [
     CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent
+    MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent, HasPermissionDirective
   ],
   template: `
     <div class="toolbar">
       <span class="title">Filtreler</span>
       <span class="spacer"></span>
-      <button mat-stroked-button (click)="openTransfer()">
+      <button *appHasPermission="'Stock.Transfer'" mat-stroked-button (click)="openTransfer()">
         <mat-icon>swap_horiz</mat-icon>
         Depolar Arası Transfer
       </button>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'StockMovement.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Hareket
       </button>

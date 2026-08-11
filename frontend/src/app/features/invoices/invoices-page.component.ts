@@ -14,6 +14,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { BranchListItemDto } from '../../core/models/branch.models';
 import { BranchesService } from '../../core/services/branches.service';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
+import { PermissionService } from '../../core/services/permission.service';
 
 @Component({
   standalone: true,
@@ -27,14 +29,15 @@ import { BranchesService } from '../../core/services/branches.service';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    ListGridComponent
+    ListGridComponent,
+    HasPermissionDirective
   ],
   template: `
     <span class="title">Filtreler</span>
     
     <div class="toolbar">
       <div class="filters">
-      <mat-form-field appearance="outline" class="branch-field">
+      <mat-form-field *appHasPermission="'Branch.Read'" appearance="outline" class="branch-field">
         <mat-label>Şube</mat-label>
         <mat-select [(ngModel)]="branchId">
           <mat-option [value]="null">Tüm şubeler</mat-option>
@@ -48,7 +51,7 @@ import { BranchesService } from '../../core/services/branches.service';
       <button mat-button (click)="reset()">Sıfırla</button>
     </div>
       <span class="spacer"></span>
-      <a mat-stroked-button color="primary" routerLink="/invoices/new">
+      <a *appHasPermission="'Invoice.Create'" mat-stroked-button color="primary" routerLink="/invoices/new">
         <mat-icon>add</mat-icon>
         Yeni Fatura
       </a>
@@ -161,13 +164,16 @@ export class InvoicesPageComponent {
   constructor(
     private service: InvoicesService,
     private branchesService: BranchesService,
+    private permissionService: PermissionService
   ) {
-    this.branchesService.list().subscribe({
-      next: (res) => (this.branches = res),
-      error: () => {
-        this.branches = [];
-      }
-    });
+    if (this.permissionService.has('Branch.Read')) {
+      this.branchesService.list().subscribe({
+        next: (res) => (this.branches = res),
+        error: () => {
+          this.branches = [];
+        }
+      });
+    }
   }
 
   // fetcher fonksiyonu Input olarak veriyoruz

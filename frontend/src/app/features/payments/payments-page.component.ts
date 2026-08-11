@@ -8,6 +8,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ListGridComponent } from '../../shared/list-grid/list-grid.component';
 import { EntityActionsCell, EntityActionsContext } from '../../shared/list-grid/entity-actions.cell';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { PaymentsService } from '../../core/services/payments.service';
 import { PaymentListItemDto, getPaymentDirectionDisplayName } from '../../core/models/payment.models';
 import { PaymentFormDialogComponent, PaymentFormDialogData } from './payment-form-dialog.component';
@@ -15,12 +16,12 @@ import { PaymentFormDialogComponent, PaymentFormDialogData } from './payment-for
 @Component({
   standalone: true,
   selector: 'app-payments-page',
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent, HasPermissionDirective],
   template: `
     <div class="toolbar">
       <span class="title">Ödemeler</span>
       <span class="spacer"></span>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'Payment.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Ödeme
       </button>
@@ -62,7 +63,9 @@ export class PaymentsPageComponent {
 
   gridContext: EntityActionsContext<PaymentListItemDto> = {
     onEdit: (row) => this.openEdit(row),
-    onDelete: (row) => this.confirmDelete(row)
+    onDelete: (row) => this.confirmDelete(row),
+    updatePermission: 'Payment.Update',
+    deletePermission: 'Payment.Delete'
   };
 
   @ViewChild('grid') grid!: ListGridComponent<PaymentListItemDto>;

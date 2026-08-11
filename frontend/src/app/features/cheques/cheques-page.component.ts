@@ -18,6 +18,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { ChequeFormDialogComponent } from './cheque-form-dialog.component';
 import { ChequeCashDialogComponent } from './cheque-cash-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   standalone: true,
@@ -30,7 +31,8 @@ import { ChequeCashDialogComponent } from './cheque-cash-dialog.component';
     FormsModule,
     MatFormFieldModule,
     MatSelectModule,
-    ListGridComponent
+    ListGridComponent,
+    HasPermissionDirective
   ],
   template: `
     <span class="title">Filtreler</span>
@@ -71,7 +73,7 @@ import { ChequeCashDialogComponent } from './cheque-cash-dialog.component';
         <button mat-button (click)="reset()">Sıfırla</button>
       </div>
       <span class="spacer"></span>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'Cheque.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Çek/Senet
       </button>

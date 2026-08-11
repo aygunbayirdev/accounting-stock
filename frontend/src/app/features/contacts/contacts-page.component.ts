@@ -12,6 +12,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ListGridComponent } from '../../shared/list-grid/list-grid.component';
 import { EntityActionsCell, EntityActionsContext } from '../../shared/list-grid/entity-actions.cell';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
+import { PermissionService } from '../../core/services/permission.service';
 import { ContactsService } from '../../core/services/contacts.service';
 import { ContactListItemDto, ListContactsQuery, getContactType } from '../../core/models/contact.models';
 import { BranchesService } from '../../core/services/branches.service';
@@ -23,7 +25,7 @@ import { ContactFormDialogComponent, ContactFormDialogData } from './contact-for
   selector: 'app-contacts-page',
   imports: [
     CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent
+    MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent, HasPermissionDirective
   ],
   template: `
     <div class="toolbar">
@@ -36,7 +38,7 @@ import { ContactFormDialogComponent, ContactFormDialogData } from './contact-for
         <mat-label>Ara (kod, ad, e-posta)</mat-label>
         <input matInput [(ngModel)]="filters.search" />
       </mat-form-field>
-      <mat-form-field appearance="outline" class="branch-field">
+      <mat-form-field *appHasPermission="'Branch.Read'" appearance="outline" class="branch-field">
         <mat-label>Şube</mat-label>
         <mat-select [(ngModel)]="filters.branchId">
           <mat-option [value]="null">Tüm şubeler</mat-option>
@@ -58,7 +60,7 @@ import { ContactFormDialogComponent, ContactFormDialogData } from './contact-for
       <button mat-stroked-button (click)="apply()">Uygula</button>
       <button mat-button (click)="reset()">Sıfırla</button>
       <span class="spacer"></span>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'Contact.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Cari
       </button>
@@ -105,7 +107,9 @@ export class ContactsPageComponent {
 
   gridContext: EntityActionsContext<ContactListItemDto> = {
     onEdit: (row) => this.openEdit(row),
-    onDelete: (row) => this.confirmDelete(row)
+    onDelete: (row) => this.confirmDelete(row),
+    updatePermission: 'Contact.Update',
+    deletePermission: 'Contact.Delete'
   };
 
   @ViewChild('grid') grid!: ListGridComponent<ContactListItemDto>;
@@ -114,9 +118,12 @@ export class ContactsPageComponent {
     private service: ContactsService,
     private branchesService: BranchesService,
     private dialog: MatDialog,
-    private snack: MatSnackBar
+    private snack: MatSnackBar,
+    private permissionService: PermissionService
   ) {
-    this.branchesService.list().subscribe(res => (this.branches = res));
+    if (this.permissionService.has('Branch.Read')) {
+      this.branchesService.list().subscribe(res => (this.branches = res));
+    }
   }
 
   fetcher = (q: { pageNumber?: number; pageSize?: number; sort?: string }) => {

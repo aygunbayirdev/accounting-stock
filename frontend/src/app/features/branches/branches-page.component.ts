@@ -9,6 +9,7 @@ import { map } from 'rxjs/operators';
 import { ListGridComponent } from '../../shared/list-grid/list-grid.component';
 import { EntityActionsCell, EntityActionsContext } from '../../shared/list-grid/entity-actions.cell';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { BranchesService } from '../../core/services/branches.service';
 import { BranchListItemDto } from '../../core/models/branch.models';
 import { BranchFormDialogComponent, BranchFormDialogData } from './branch-form-dialog.component';
@@ -16,12 +17,12 @@ import { BranchFormDialogComponent, BranchFormDialogData } from './branch-form-d
 @Component({
   standalone: true,
   selector: 'app-branches-page',
-  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent],
+  imports: [CommonModule, MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent, HasPermissionDirective],
   template: `
     <div class="toolbar">
       <span class="title">Şubeler</span>
       <span class="spacer"></span>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'Branch.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Şube
       </button>
@@ -56,7 +57,9 @@ export class BranchesPageComponent {
 
   gridContext: EntityActionsContext<BranchListItemDto> = {
     onEdit: (row) => this.openEdit(row),
-    onDelete: (row) => this.confirmDelete(row)
+    onDelete: (row) => this.confirmDelete(row),
+    updatePermission: 'Branch.Update',
+    deletePermission: 'Branch.Delete'
   };
 
   @ViewChild('grid') grid!: ListGridComponent<BranchListItemDto>;

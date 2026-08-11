@@ -1,10 +1,11 @@
 // invoice-actions.cell.ts
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { ICellRendererAngularComp } from 'ag-grid-angular';
 import { ICellRendererParams } from 'ag-grid-community';
+import { PermissionService } from '../../core/services/permission.service';
 
 @Component({
   standalone: true,
@@ -14,7 +15,7 @@ import { ICellRendererParams } from 'ag-grid-community';
     <a class="icon-btn" [routerLink]="['/invoices', id]" title="Görüntüle">
       <mat-icon>visibility</mat-icon>
     </a>
-    <a class="icon-btn" [routerLink]="['/invoices', id, 'edit']" title="Düzenle">
+    <a class="icon-btn" *ngIf="canUpdate" [routerLink]="['/invoices', id, 'edit']" title="Düzenle">
       <mat-icon>edit</mat-icon>
     </a>
   `,
@@ -25,7 +26,9 @@ import { ICellRendererParams } from 'ag-grid-community';
   `]
 })
 export class InvoiceActionsCell implements ICellRendererAngularComp {
+  private permissionService = inject(PermissionService);
   id!: number;
+  canUpdate = this.permissionService.has('Invoice.Update');
   agInit(p: ICellRendererParams) { this.id = Number(p.data?.id ?? 0); }
   refresh(): boolean { return false; }
 }

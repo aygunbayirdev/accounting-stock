@@ -12,6 +12,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ListGridComponent } from '../../shared/list-grid/list-grid.component';
 import { EntityActionsCell, EntityActionsContext } from '../../shared/list-grid/entity-actions.cell';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
+import { PermissionService } from '../../core/services/permission.service';
 import { CashBankAccountsService } from '../../core/services/cash-bank-accounts.service';
 import {
   CashBankAccountListItemDto,
@@ -28,20 +30,20 @@ import { CashBankAccountFormDialogComponent, CashBankAccountFormDialogData } fro
   selector: 'app-cash-bank-accounts-page',
   imports: [
     CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-    MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent
+    MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent, HasPermissionDirective
   ],
   template: `
     <div class="toolbar">
       <span class="title">Filtreler</span>
       <span class="spacer"></span>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'CashBankAccount.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Hesap
       </button>
     </div>
 
     <div class="filters">
-      <mat-form-field appearance="outline" class="branch-field">
+      <mat-form-field *appHasPermission="'Branch.Read'" appearance="outline" class="branch-field">
         <mat-label>Şube</mat-label>
         <mat-select [(ngModel)]="branchId">
           <mat-option [value]="null">Tüm şubeler</mat-option>
@@ -108,7 +110,9 @@ export class CashBankAccountsPageComponent {
 
   gridContext: EntityActionsContext<CashBankAccountListItemDto> = {
     onEdit: (row) => this.openEdit(row),
-    onDelete: (row) => this.confirmDelete(row)
+    onDelete: (row) => this.confirmDelete(row),
+    updatePermission: 'CashBankAccount.Update',
+    deletePermission: 'CashBankAccount.Delete'
   };
 
   @ViewChild('grid') grid!: ListGridComponent<CashBankAccountListItemDto>;
@@ -117,9 +121,12 @@ export class CashBankAccountsPageComponent {
     private service: CashBankAccountsService,
     private branchesService: BranchesService,
     private dialog: MatDialog,
-    private snack: MatSnackBar
+    private snack: MatSnackBar,
+    private permissionService: PermissionService
   ) {
-    this.branchesService.list().subscribe(res => (this.branches = res));
+    if (this.permissionService.has('Branch.Read')) {
+      this.branchesService.list().subscribe(res => (this.branches = res));
+    }
   }
 
   fetcher = (q: { pageNumber?: number; pageSize?: number; sort?: string }) => {

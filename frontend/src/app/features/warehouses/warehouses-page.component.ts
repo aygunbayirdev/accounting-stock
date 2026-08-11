@@ -11,6 +11,8 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ListGridComponent } from '../../shared/list-grid/list-grid.component';
 import { EntityActionsCell, EntityActionsContext } from '../../shared/list-grid/entity-actions.cell';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
+import { PermissionService } from '../../core/services/permission.service';
 import { WarehousesService } from '../../core/services/warehouses.service';
 import { WarehouseListItemDto, ListWarehousesQuery } from '../../core/models/warehouse.models';
 import { BranchesService } from '../../core/services/branches.service';
@@ -22,7 +24,7 @@ import { WarehouseFormDialogComponent, WarehouseFormDialogData } from './warehou
   selector: 'app-warehouses-page',
   imports: [
     CommonModule, FormsModule, MatFormFieldModule, MatSelectModule, MatButtonModule,
-    MatIconModule, MatDialogModule, ListGridComponent
+    MatIconModule, MatDialogModule, ListGridComponent, HasPermissionDirective
   ],
   template: `
     <div class="toolbar">
@@ -31,7 +33,7 @@ import { WarehouseFormDialogComponent, WarehouseFormDialogData } from './warehou
     </div>
 
     <div class="filters">
-      <mat-form-field appearance="outline" class="branch-field">
+      <mat-form-field *appHasPermission="'Branch.Read'" appearance="outline" class="branch-field">
         <mat-label>Şube</mat-label>
         <mat-select [(ngModel)]="branchId">
           <mat-option [value]="null">Tüm şubeler</mat-option>
@@ -43,7 +45,7 @@ import { WarehouseFormDialogComponent, WarehouseFormDialogData } from './warehou
       <button mat-stroked-button (click)="apply()">Uygula</button>
       <button mat-button (click)="reset()">Sıfırla</button>
       <span class="spacer"></span>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'Warehouse.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Depo
       </button>
@@ -87,7 +89,9 @@ export class WarehousesPageComponent {
 
   gridContext: EntityActionsContext<WarehouseListItemDto> = {
     onEdit: (row) => this.openEdit(row),
-    onDelete: (row) => this.confirmDelete(row)
+    onDelete: (row) => this.confirmDelete(row),
+    updatePermission: 'Warehouse.Update',
+    deletePermission: 'Warehouse.Delete'
   };
 
   @ViewChild('grid') grid!: ListGridComponent<WarehouseListItemDto>;
@@ -96,9 +100,12 @@ export class WarehousesPageComponent {
     private service: WarehousesService,
     private branchesService: BranchesService,
     private dialog: MatDialog,
-    private snack: MatSnackBar
+    private snack: MatSnackBar,
+    private permissionService: PermissionService
   ) {
-    this.branchesService.list().subscribe(res => (this.branches = res));
+    if (this.permissionService.has('Branch.Read')) {
+      this.branchesService.list().subscribe(res => (this.branches = res));
+    }
   }
 
   fetcher = (q: { pageNumber?: number; pageSize?: number; sort?: string }) => {

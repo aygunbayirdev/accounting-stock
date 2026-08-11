@@ -4,6 +4,7 @@ import { ColDef } from 'ag-grid-community';
 import { ListGridComponent } from '../../shared/list-grid/list-grid.component';
 import { EntityActionsCell, EntityActionsContext } from '../../shared/list-grid/entity-actions.cell';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { ItemsService } from '../../core/services/items.service';
 import { ItemListItemDto, ListItemsQuery, ItemType, ItemTypeNames } from '../../core/models/item.models';
 import { FormsModule } from '@angular/forms';
@@ -21,13 +22,13 @@ import { ItemFormDialogComponent, ItemFormDialogData } from './item-form-dialog.
     selector: 'app-items-page',
     imports: [
         CommonModule, FormsModule, MatFormFieldModule, MatInputModule, MatSelectModule,
-        MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent
+        MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent, HasPermissionDirective
     ],
     template: `
     <div class="toolbar">
       <span class="title">Filtreler</span>
       <span class="spacer"></span>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'Item.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Kart
       </button>
@@ -94,7 +95,9 @@ export class ItemsPageComponent {
 
     gridContext: EntityActionsContext<ItemListItemDto> = {
         onEdit: (row) => this.openEdit(row),
-        onDelete: (row) => this.confirmDelete(row)
+        onDelete: (row) => this.confirmDelete(row),
+        updatePermission: 'Item.Update',
+        deletePermission: 'Item.Delete'
     };
 
     // Basit filtre state

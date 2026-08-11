@@ -16,6 +16,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { BranchListItemDto } from '../../core/models/branch.models';
 import { BranchesService } from '../../core/services/branches.service';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
+import { PermissionService } from '../../core/services/permission.service';
 
 @Component({
   standalone: true,
@@ -29,14 +31,15 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
     FormsModule,
     MatFormFieldModule,
     MatSelectModule,
-    ListGridComponent
+    ListGridComponent,
+    HasPermissionDirective
   ],
   template: `
     <span class="title">Filtreler</span>
 
     <div class="toolbar">
       <div class="filters">
-        <mat-form-field appearance="outline" class="branch-field">
+        <mat-form-field *appHasPermission="'Branch.Read'" appearance="outline" class="branch-field">
           <mat-label>Şube</mat-label>
           <mat-select [(ngModel)]="branchId">
             <mat-option [value]="null">Tüm şubeler</mat-option>
@@ -61,7 +64,7 @@ import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dial
         <button mat-button (click)="reset()">Sıfırla</button>
       </div>
       <span class="spacer"></span>
-      <a mat-stroked-button color="primary" routerLink="/orders/new">
+      <a *appHasPermission="'Order.Create'" mat-stroked-button color="primary" routerLink="/orders/new">
         <mat-icon>add</mat-icon>
         Yeni Sipariş
       </a>
@@ -161,12 +164,15 @@ export class OrdersPageComponent {
     private service: OrdersService,
     private branchesService: BranchesService,
     private dialog: MatDialog,
-    private snack: MatSnackBar
+    private snack: MatSnackBar,
+    private permissionService: PermissionService
   ) {
-    this.branchesService.list().subscribe({
-      next: (res) => (this.branches = res),
-      error: () => { this.branches = []; }
-    });
+    if (this.permissionService.has('Branch.Read')) {
+      this.branchesService.list().subscribe({
+        next: (res) => (this.branches = res),
+        error: () => { this.branches = []; }
+      });
+    }
   }
 
   fetcher = (q: { pageNumber?: number; pageSize?: number }) => {

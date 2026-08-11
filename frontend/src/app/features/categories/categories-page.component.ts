@@ -11,6 +11,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { ListGridComponent } from '../../shared/list-grid/list-grid.component';
 import { EntityActionsCell, EntityActionsContext } from '../../shared/list-grid/entity-actions.cell';
 import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 import { CategoriesService } from '../../core/services/categories.service';
 import { CategoryListItemDto, ListCategoriesQuery } from '../../core/models/category.models';
 import { CategoryFormDialogComponent, CategoryFormDialogData } from './category-form-dialog.component';
@@ -20,13 +21,13 @@ import { CategoryFormDialogComponent, CategoryFormDialogData } from './category-
   selector: 'app-categories-page',
   imports: [
     CommonModule, FormsModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent
+    MatButtonModule, MatIconModule, MatDialogModule, ListGridComponent, HasPermissionDirective
   ],
   template: `
     <div class="toolbar">
       <span class="title">Filtreler</span>
       <span class="spacer"></span>
-      <button mat-stroked-button color="primary" (click)="openCreate()">
+      <button *appHasPermission="'Category.Create'" mat-stroked-button color="primary" (click)="openCreate()">
         <mat-icon>add</mat-icon>
         Yeni Kategori
       </button>
@@ -80,7 +81,9 @@ export class CategoriesPageComponent {
 
   gridContext: EntityActionsContext<CategoryListItemDto> = {
     onEdit: (row) => this.openEdit(row),
-    onDelete: (row) => this.confirmDelete(row)
+    onDelete: (row) => this.confirmDelete(row),
+    updatePermission: 'Category.Update',
+    deletePermission: 'Category.Delete'
   };
 
   @ViewChild('grid') grid!: ListGridComponent<CategoryListItemDto>;

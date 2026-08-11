@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { ICellRendererAngularComp } from 'ag-grid-angular';
 import { ICellRendererParams } from 'ag-grid-community';
 import { ChequeDetailDto } from '../../core/models/cheque.models';
+import { PermissionService } from '../../core/services/permission.service';
 
 export interface ChequeActionsContext<T = any> {
   onCash?: (row: T) => void;
@@ -45,6 +46,7 @@ export interface ChequeActionsContext<T = any> {
   `]
 })
 export class ChequeActionsCell implements ICellRendererAngularComp {
+  private permissionService = inject(PermissionService);
   private params!: ICellRendererParams<ChequeDetailDto>;
 
   isInbound = false;
@@ -62,12 +64,14 @@ export class ChequeActionsCell implements ICellRendererAngularComp {
 
     const isPending = status === 'Pending';
     const isBounced = status === 'Bounced';
+    const canUpdateStatus = this.permissionService.has('Cheque.UpdateStatus');
+    const canDelete = this.permissionService.has('Cheque.Delete');
 
-    this.showCash = isPending || isBounced;
-    this.showEndorse = isPending && this.isInbound;
-    this.showBounce = isPending;
-    this.showCancel = isPending;
-    this.showDelete = status !== 'Paid' && status !== 'Bounced';
+    this.showCash = (isPending || isBounced) && canUpdateStatus;
+    this.showEndorse = isPending && this.isInbound && canUpdateStatus;
+    this.showBounce = isPending && canUpdateStatus;
+    this.showCancel = isPending && canUpdateStatus;
+    this.showDelete = status !== 'Paid' && status !== 'Bounced' && canDelete;
   }
 
   refresh(): boolean { return false; }

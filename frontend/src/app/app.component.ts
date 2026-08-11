@@ -10,14 +10,16 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from './core/services/auth.service';
+import { HasPermissionDirective } from './shared/directives/has-permission.directive';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [
     CommonModule, RouterOutlet, RouterLink, RouterLinkActive,
-    MatSidenavModule, MatToolbarModule, MatIconModule, MatListModule, 
-    MatButtonModule, MatMenuModule, MatDividerModule, MatTooltipModule
+    MatSidenavModule, MatToolbarModule, MatIconModule, MatListModule,
+    MatButtonModule, MatMenuModule, MatDividerModule, MatTooltipModule,
+    HasPermissionDirective
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'

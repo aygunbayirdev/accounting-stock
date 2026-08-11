@@ -3,71 +3,71 @@
     <mat-sidenav class="sidenav" mode="side" [opened]="opened()">
       <div class="brand">Accounting</div>
       <mat-nav-list>
-        <a mat-list-item routerLink="/dashboard" routerLinkActive="active">
+        <a *appHasPermission="'Report.Dashboard'" mat-list-item routerLink="/dashboard" routerLinkActive="active">
           <mat-icon matListItemIcon>space_dashboard</mat-icon>
           <div matListItemTitle>Dashboard</div>
         </a>
-        <a mat-list-item routerLink="/payments" routerLinkActive="active">
+        <a *appHasPermission="'Payment.Read'" mat-list-item routerLink="/payments" routerLinkActive="active">
           <mat-icon matListItemIcon>account_balance_wallet</mat-icon>
           <div matListItemTitle>Ödemeler</div>
         </a>
-        <a mat-list-item routerLink="/invoices" routerLinkActive="active">
+        <a *appHasPermission="'Invoice.Read'" mat-list-item routerLink="/invoices" routerLinkActive="active">
           <mat-icon matListItemIcon>description</mat-icon>
           <div matListItemTitle>Faturalar</div>
         </a>
-        <a mat-list-item routerLink="/orders" routerLinkActive="active">
+        <a *appHasPermission="'Order.Read'" mat-list-item routerLink="/orders" routerLinkActive="active">
           <mat-icon matListItemIcon>shopping_cart</mat-icon>
           <div matListItemTitle>Siparişler</div>
         </a>
-        <a mat-list-item routerLink="/items" routerLinkActive="active" style="display: flex !important; align-items: center !important;">
+        <a *appHasPermission="'Item.Read'" mat-list-item routerLink="/items" routerLinkActive="active" style="display: flex !important; align-items: center !important;">
           <mat-icon matListItemIcon>inventory</mat-icon>
           <div matListItemTitle>Stok Kartları</div>
         </a>
-        <a mat-list-item routerLink="/contacts" routerLinkActive="active">
+        <a *appHasPermission="'Contact.Read'" mat-list-item routerLink="/contacts" routerLinkActive="active">
           <mat-icon matListItemIcon>groups</mat-icon>
           <div matListItemTitle>Cariler</div>
         </a>
-        <a mat-list-item routerLink="/branches" routerLinkActive="active">
+        <a *appHasPermission="'Branch.Read'" mat-list-item routerLink="/branches" routerLinkActive="active">
           <mat-icon matListItemIcon>store</mat-icon>
           <div matListItemTitle>Şubeler</div>
         </a>
-        <a mat-list-item routerLink="/warehouses" routerLinkActive="active">
+        <a *appHasPermission="'Warehouse.Read'" mat-list-item routerLink="/warehouses" routerLinkActive="active">
           <mat-icon matListItemIcon>warehouse</mat-icon>
           <div matListItemTitle>Depolar</div>
         </a>
-        <a mat-list-item routerLink="/cash-bank-accounts" routerLinkActive="active">
+        <a *appHasPermission="'CashBankAccount.Read'" mat-list-item routerLink="/cash-bank-accounts" routerLinkActive="active">
           <mat-icon matListItemIcon>account_balance</mat-icon>
           <div matListItemTitle>Kasa/Banka</div>
         </a>
-        <a mat-list-item routerLink="/cheques" routerLinkActive="active">
+        <a *appHasPermission="'Cheque.Read'" mat-list-item routerLink="/cheques" routerLinkActive="active">
           <mat-icon matListItemIcon>receipt</mat-icon>
           <div matListItemTitle>Çek/Senet</div>
         </a>
-        <a mat-list-item routerLink="/reports/contact-statement" routerLinkActive="active">
+        <a *appHasPermission="'Report.ContactStatement'" mat-list-item routerLink="/reports/contact-statement" routerLinkActive="active">
           <mat-icon matListItemIcon>assignment</mat-icon>
           <div matListItemTitle>Cari Ekstre</div>
         </a>
-        <a mat-list-item routerLink="/reports/stock-status" routerLinkActive="active">
+        <a *appHasPermission="'Report.StockStatus'" mat-list-item routerLink="/reports/stock-status" routerLinkActive="active">
           <mat-icon matListItemIcon>assessment</mat-icon>
           <div matListItemTitle>Stok Raporu</div>
         </a>
-        <a mat-list-item routerLink="/reports/income-expense" routerLinkActive="active">
+        <a *appHasPermission="'Report.ProfitLoss'" mat-list-item routerLink="/reports/income-expense" routerLinkActive="active">
           <mat-icon matListItemIcon>insights</mat-icon>
           <div matListItemTitle>Gelir/Gider Raporu</div>
         </a>
-        <a mat-list-item routerLink="/stocks" routerLinkActive="active">
+        <a *appHasPermission="'Stock.Read'" mat-list-item routerLink="/stocks" routerLinkActive="active">
           <mat-icon matListItemIcon>inventory_2</mat-icon>
           <div matListItemTitle>Stok Durumu</div>
         </a>
-        <a mat-list-item routerLink="/stock-movements" routerLinkActive="active">
+        <a *appHasPermission="'StockMovement.Read'" mat-list-item routerLink="/stock-movements" routerLinkActive="active">
           <mat-icon matListItemIcon>sync_alt</mat-icon>
           <div matListItemTitle>Stok Hareketleri</div>
         </a>
-        <a mat-list-item routerLink="/categories" routerLinkActive="active">
+        <a *appHasPermission="'Category.Read'" mat-list-item routerLink="/categories" routerLinkActive="active">
           <mat-icon matListItemIcon>sell</mat-icon>
           <div matListItemTitle>Kategoriler</div>
         </a>
-        <a mat-list-item routerLink="/company-settings" routerLinkActive="active">
+        <a *appHasPermission="'CompanySettings.Read'" mat-list-item routerLink="/company-settings" routerLinkActive="active">
           <mat-icon matListItemIcon>settings</mat-icon>
           <div matListItemTitle>Firma Ayarları</div>
         </a>

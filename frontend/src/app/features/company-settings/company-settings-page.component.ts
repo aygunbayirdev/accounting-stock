@@ -8,13 +8,15 @@ import { MatCardModule } from '@angular/material/card';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { CompanySettingsService } from '../../core/services/company-settings.service';
 import { CompanySettingsDto } from '../../core/models/company-settings.models';
+import { PermissionService } from '../../core/services/permission.service';
+import { HasPermissionDirective } from '../../shared/directives/has-permission.directive';
 
 @Component({
   standalone: true,
   selector: 'app-company-settings-page',
   imports: [
     CommonModule, ReactiveFormsModule, MatFormFieldModule, MatInputModule,
-    MatButtonModule, MatCardModule
+    MatButtonModule, MatCardModule, HasPermissionDirective
   ],
   template: `
     <mat-card class="settings-card" *ngIf="loaded">
@@ -65,7 +67,7 @@ import { CompanySettingsDto } from '../../core/models/company-settings.models';
               <textarea matInput formControlName="address" rows="2"></textarea>
             </mat-form-field>
           </div>
-          <div class="actions">
+          <div class="actions" *appHasPermission="'CompanySettings.Update'">
             <button type="submit" mat-flat-button color="primary" [disabled]="form.invalid || saving">Kaydet</button>
           </div>
         </form>
@@ -83,6 +85,7 @@ export class CompanySettingsPageComponent implements OnInit {
   private service = inject(CompanySettingsService);
   private fb = inject(FormBuilder);
   private snack = inject(MatSnackBar);
+  private permissionService = inject(PermissionService);
 
   loaded = false;
   saving = false;
@@ -117,6 +120,9 @@ export class CompanySettingsPageComponent implements OnInit {
         logoUrl: dto.logoUrl ?? ''
       });
       this.loaded = true;
+      if (!this.permissionService.has('CompanySettings.Update')) {
+        this.form.disable();
+      }
     });
   }
 
