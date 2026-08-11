@@ -39,13 +39,29 @@
   font: var(--mat-sys-title-medium);
 }
 
-/* Sidenav grup başlığı (Muhasebe / Stok Yönetimi / Sistem) */
+/* Sidenav grup başlığı (Muhasebe / Stok Yönetimi / Sistem) — tıklanabilir,
+   alt öğelerden görsel olarak ayrışan bir bölüm başlığı gibi görünmeli */
 .group-header {
   width: 100%;
-  font-weight: 500;
+  background: var(--mat-sys-surface-container-high, rgba(0, 0, 0, 0.045));
+
+  /* matListItemTitle bir directive (component değil), bu yüzden AppComponent'in
+     kendi template'inde yazılan .group-header ile aynı encapsulation attribute'unu
+     taşıyor — ::ng-deep gerekmeden bu seçici doğrudan eşleşir. */
+  .mat-mdc-list-item-title {
+    font-weight: 700;
+  }
+
+  .mat-mdc-list-item-icon {
+    color: var(--mat-sys-primary);
+  }
+
+  .chevron-wrap {
+    display: flex;
+    align-items: center;
+  }
 
   .chevron {
-    margin-left: auto;
     color: var(--mat-sys-on-surface-variant, #666);
   }
 }

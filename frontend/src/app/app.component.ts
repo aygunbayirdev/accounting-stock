@@ -41,10 +41,10 @@ export class AppComponent {
     return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
   });
 
-  // Sidenav grup açık/kapalı durumu
-  muhasebeOpen = signal(true);
-  stokOpen = signal(true);
-  sistemOpen = signal(true);
+  // Sidenav grup açık/kapalı durumu — başlangıçta hepsi kapalı, tıklanınca açılır
+  muhasebeOpen = signal(false);
+  stokOpen = signal(false);
+  sistemOpen = signal(false);
 
   // Bir grup, alt öğelerinin hiçbirine izin yoksa hiç gösterilmesin diye
   // ("Tanımlar"/"Raporlar" alt başlıkları da dahil) izinlere göre hesaplanan görünürlük

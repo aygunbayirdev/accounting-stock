@@ -11,7 +11,7 @@
           <a mat-list-item class="group-header" role="button" tabindex="0" (click)="muhasebeOpen.set(!muhasebeOpen())" (keydown.enter)="muhasebeOpen.set(!muhasebeOpen())" (keydown.space)="$event.preventDefault(); muhasebeOpen.set(!muhasebeOpen())">
             <mat-icon matListItemIcon>account_balance</mat-icon>
             <div matListItemTitle>Muhasebe</div>
-            <mat-icon matListItemMeta class="chevron">{{ muhasebeOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+            <span matListItemMeta class="chevron-wrap"><mat-icon class="chevron">{{ muhasebeOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></span>
           </a>
           @if (muhasebeOpen()) {
             <div class="group-items">
@@ -67,7 +67,7 @@
           <a mat-list-item class="group-header" role="button" tabindex="0" (click)="stokOpen.set(!stokOpen())" (keydown.enter)="stokOpen.set(!stokOpen())" (keydown.space)="$event.preventDefault(); stokOpen.set(!stokOpen())">
             <mat-icon matListItemIcon>warehouse</mat-icon>
             <div matListItemTitle>Stok Yönetimi</div>
-            <mat-icon matListItemMeta class="chevron">{{ stokOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+            <span matListItemMeta class="chevron-wrap"><mat-icon class="chevron">{{ stokOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></span>
           </a>
           @if (stokOpen()) {
             <div class="group-items">
@@ -111,7 +111,7 @@
           <a mat-list-item class="group-header" role="button" tabindex="0" (click)="sistemOpen.set(!sistemOpen())" (keydown.enter)="sistemOpen.set(!sistemOpen())" (keydown.space)="$event.preventDefault(); sistemOpen.set(!sistemOpen())">
             <mat-icon matListItemIcon>settings</mat-icon>
             <div matListItemTitle>Sistem</div>
-            <mat-icon matListItemMeta class="chevron">{{ sistemOpen() ? 'expand_less' : 'expand_more' }}</mat-icon>
+            <span matListItemMeta class="chevron-wrap"><mat-icon class="chevron">{{ sistemOpen() ? 'expand_less' : 'expand_more' }}</mat-icon></span>
           </a>
           @if (sistemOpen()) {
             <div class="group-items">
