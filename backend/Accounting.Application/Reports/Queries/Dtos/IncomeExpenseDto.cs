@@ -1,45 +1,54 @@
+using Accounting.Application.Common.JsonConverters;
+using System.Text.Json.Serialization;
+
 namespace Accounting.Application.Reports.Queries.Dtos;
 
 /// <summary>
 /// Gelir-Gider Raporu DTO (Income & Expense Report)
-/// NAKÝT BAZLI RAPOR - Gerçek muhasebe karý deðildir
+/// NAKï¿½T BAZLI RAPOR - Gerï¿½ek muhasebe karï¿½ deï¿½ildir
 /// </summary>
 public record IncomeExpenseDto(
     /// <summary>
-    /// Net Satýþlar (Sales - Sales Returns)
+    /// Net Satï¿½ï¿½lar (Sales - Sales Returns)
     /// </summary>
+    [property: JsonConverter(typeof(AmountJsonConverter))]
     decimal Income,
 
     /// <summary>
-    /// Stok Alýmlarý (Inventory Purchases)
-    /// DÝKKAT: Bu COGS (Satýlan Malýn Maliyeti) DEÐÝLDÝR!
-    /// Dönem içinde satýn alýnan mal bedelidir.
-    /// Gerçek COGS için FIFO/LIFO sistemi gerekir.
+    /// Stok Alï¿½mlarï¿½ (Inventory Purchases)
+    /// Dï¿½KKAT: Bu COGS (Satï¿½lan Malï¿½n Maliyeti) DEï¿½ï¿½LDï¿½R!
+    /// Dï¿½nem iï¿½inde satï¿½n alï¿½nan mal bedelidir.
+    /// Gerï¿½ek COGS iï¿½in FIFO/LIFO sistemi gerekir.
     /// </summary>
+    [property: JsonConverter(typeof(AmountJsonConverter))]
     decimal InventoryPurchases,
 
     /// <summary>
     /// Faaliyet Giderleri (Operating Expenses)
-    /// Expense + Service item alýmlarý
+    /// Expense + Service item alï¿½mlarï¿½
     /// </summary>
+    [property: JsonConverter(typeof(AmountJsonConverter))]
     decimal OperatingExpenses,
 
     /// <summary>
-    /// Brüt Kâr (Gross Profit)
-    /// NAKÝT BAZLI: Income - Inventory Purchases
+    /// Brï¿½t Kï¿½r (Gross Profit)
+    /// NAKï¿½T BAZLI: Income - Inventory Purchases
     /// </summary>
+    [property: JsonConverter(typeof(AmountJsonConverter))]
     decimal GrossProfit,
 
     /// <summary>
-    /// Net Kâr/Zarar (Net Profit/Loss)
+    /// Net Kï¿½r/Zarar (Net Profit/Loss)
     /// Gross Profit - Operating Expenses
     /// </summary>
+    [property: JsonConverter(typeof(AmountJsonConverter))]
     decimal NetProfit,
 
     /// <summary>
     /// KDV Dengesi (VAT Balance)
-    /// Pozitif: Ödenecek KDV
-    /// Negatif: Ýade alýnacak KDV
+    /// Pozitif: ï¿½denecek KDV
+    /// Negatif: ï¿½ade alï¿½nacak KDV
     /// </summary>
+    [property: JsonConverter(typeof(AmountJsonConverter))]
     decimal VatBalance
 );

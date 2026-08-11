@@ -7,7 +7,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { DashboardStatsDto, ContactStatementDto, StockStatusDto } from '../models/report.models';
+import { DashboardStatsDto, ContactStatementDto, StockStatusDto, IncomeExpenseDto } from '../models/report.models';
 
 @Injectable({ providedIn: 'root' })
 export class ReportsService {
@@ -61,5 +61,16 @@ export class ReportsService {
    */
   exportStockStatus(): Observable<Blob> {
     return this.http.get(`${this.baseUrl}/stock-status/export`, { responseType: 'blob' });
+  }
+
+  /**
+   * GET /api/reports/income-expense
+   */
+  getIncomeExpense(branchId?: number | null, dateFrom?: string | null, dateTo?: string | null): Observable<IncomeExpenseDto> {
+    let params = new HttpParams();
+    if (branchId != null) params = params.set('branchId', branchId);
+    if (dateFrom) params = params.set('dateFrom', dateFrom);
+    if (dateTo) params = params.set('dateTo', dateTo);
+    return this.http.get<IncomeExpenseDto>(`${this.baseUrl}/income-expense`, { params });
   }
 }

@@ -28,6 +28,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/reports/stock-status-report-page.component').then(m => m.StockStatusReportPageComponent)
   },
   {
+    path: 'reports/income-expense',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/reports/income-expense-report-page.component').then(m => m.IncomeExpenseReportPageComponent)
+  },
+  {
     path: 'payments',
     canActivate: [authGuard],
     loadComponent: () => import('./features/payments/payments-page.component').then(m => m.PaymentsPageComponent) 

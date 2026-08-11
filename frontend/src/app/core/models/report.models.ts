@@ -52,3 +52,15 @@ export interface StockStatusDto {
   quantityReserved: string;  // Rezerve
   quantityAvailable: string; // Mevcut
 }
+
+// ========== Income & Expense Report (Gelir/Gider Raporu) ==========
+// NAKİT BAZLI RAPOR - gerçek muhasebe karı değildir (bkz. backend IncomeExpenseDto)
+
+export interface IncomeExpenseDto {
+  income: string;             // Net Satışlar
+  inventoryPurchases: string; // Stok Alımları (COGS değil)
+  operatingExpenses: string;  // Faaliyet Giderleri
+  grossProfit: string;        // Brüt Kâr
+  netProfit: string;          // Net Kâr/Zarar
+  vatBalance: string;         // KDV Dengesi
+}

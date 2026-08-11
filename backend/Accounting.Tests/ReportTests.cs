@@ -113,8 +113,8 @@ public class ReportTests
     [Fact]
     public async Task GetDashboardStats_ShouldReturnCorrectFigures()
     {
-        var handler = new GetDashboardStatsHandler(_db); 
-        var query = new GetDashboardStatsQuery(1); 
+        var handler = new GetDashboardStatsHandler(_db, _currentUserServiceMock.Object);
+        var query = new GetDashboardStatsQuery(1);
 
         var result = await handler.Handle(query, CancellationToken.None);
 
@@ -125,7 +125,7 @@ public class ReportTests
     [Fact]
     public async Task GetContactStatement_ShouldReturnTransactions()
     {
-        var handler = new GetContactStatementHandler(_db, _balanceServiceMock.Object);
+        var handler = new GetContactStatementHandler(_db, _balanceServiceMock.Object, _currentUserServiceMock.Object);
         var query = new GetContactStatementQuery(1, DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
 
         var result = await handler.Handle(query, CancellationToken.None);
@@ -154,8 +154,8 @@ public class ReportTests
     [Fact] 
     public async Task GetIncomeExpense_ShouldReturnNetFigures()
     {
-        var handler = new GetIncomeExpenseHandler(_db); // Correct Class Name
-        var query = new GetIncomeExpenseQuery(1, DateTime.UtcNow.AddDays(-30), DateTime.UtcNow); // Added BranchId Arg
+        var handler = new GetIncomeExpenseHandler(_db, _currentUserServiceMock.Object);
+        var query = new GetIncomeExpenseQuery(1, DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
 
         var result = await handler.Handle(query, CancellationToken.None);
         

@@ -1,4 +1,5 @@
 ﻿using Accounting.Application.Common.Abstractions;
+using Accounting.Application.Common.Interfaces;
 using Accounting.Application.Reports.Queries.Dtos;
 using Accounting.Application.Reports.Queries.GetIncomeExpense;
 using Accounting.Domain.Enums;
@@ -13,13 +14,22 @@ namespace Accounting.Application.Reports.Queries.GetProfitLoss;
 /// Stok alımları COGS (Satılan Malın Maliyeti) olarak değil,
 /// dönem içi stok harcaması olarak gösterilir.
 /// </summary>
-public class GetIncomeExpenseHandler(IAppDbContext db)
+public class GetIncomeExpenseHandler(IAppDbContext db, ICurrentUserService currentUserService)
     : IRequestHandler<GetIncomeExpenseQuery, IncomeExpenseDto>
 {
     public async Task<IncomeExpenseDto> Handle(GetIncomeExpenseQuery request, CancellationToken ct)
     {
         var dateFrom = request.DateFrom ?? DateTime.MinValue;
         var dateTo = request.DateTo ?? DateTime.MaxValue;
+
+        // IDOR koruması: HQ/Admin olmayan bir kullanıcı, branchId'yi hiç göndermeyerek
+        // (şirket geneli) ya da başka bir şubenin ID'sini göndererek kendi şubesi dışındaki
+        // gelir/gider verilerini göremesin — GetDashboardStatsHandler'daki aynı desen.
+        var branchId = request.BranchId;
+        if (!currentUserService.IsAdmin && !currentUserService.IsHeadquarters && currentUserService.BranchId.HasValue)
+        {
+            branchId = currentUserService.BranchId.Value;
+        }
 
         // =================================================================
         // 1. NET SATIŞLAR (Sales - Sales Returns)
@@ -32,8 +42,8 @@ public class GetIncomeExpenseHandler(IAppDbContext db)
                 && i.DateUtc <= dateTo
                 && !i.IsDeleted);
 
-        if (request.BranchId.HasValue)
-            salesQuery = salesQuery.Where(i => i.BranchId == request.BranchId.Value);
+        if (branchId.HasValue)
+            salesQuery = salesQuery.Where(i => i.BranchId == branchId.Value);
 
         var salesData = await salesQuery
             .Select(i => new { i.Type, i.TotalNet, i.TotalVat })
@@ -78,9 +88,9 @@ public class GetIncomeExpenseHandler(IAppDbContext db)
                 && l.Item != null
                 && l.Item.Type == ItemType.Inventory);
 
-        if (request.BranchId.HasValue)
+        if (branchId.HasValue)
             inventoryLinesQuery = inventoryLinesQuery
-                .Where(l => l.Invoice.BranchId == request.BranchId.Value);
+                .Where(l => l.Invoice.BranchId == branchId.Value);
 
         var inventoryLines = await inventoryLinesQuery
             .Select(l => new { l.Invoice.Type, l.Net, l.Vat })
@@ -124,9 +134,9 @@ public class GetIncomeExpenseHandler(IAppDbContext db)
                 && (l.Item.Type == ItemType.Expense
                     || l.Item.Type == ItemType.Service));
 
-        if (request.BranchId.HasValue)
+        if (branchId.HasValue)
             expenseLinesQuery = expenseLinesQuery
-                .Where(l => l.Invoice.BranchId == request.BranchId.Value);
+                .Where(l => l.Invoice.BranchId == branchId.Value);
 
         var expenseLines = await expenseLinesQuery
             .Select(l => new { l.Invoice.Type, l.Net, l.Vat })
