@@ -37,6 +37,7 @@ import { AuthService } from '../../core/services/auth.service';
         </mat-card-header>
 
         <mat-card-content>
+          <p class="demo-hint">Demo hesap bilgileri otomatik dolduruldu, doğrudan "Giriş Yap" ile devam edebilirsiniz.</p>
           <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
             <mat-form-field appearance="outline">
               <mat-label>E-posta</mat-label>
@@ -131,6 +132,13 @@ import { AuthService } from '../../core/services/auth.service';
       color: rgba(0, 0, 0, 0.6);
     }
 
+    .demo-hint {
+      font-size: 13px;
+      color: rgba(0, 0, 0, 0.55);
+      text-align: center;
+      margin: 0 0 16px;
+    }
+
     .login-form {
       display: flex;
       flex-direction: column;
@@ -158,11 +166,14 @@ export class LoginPageComponent {
   private snackBar = inject(MatSnackBar);
 
   loading = signal(false);
-  hidePassword = signal(true);
+  // Demo hesabı olduğu belli olsun diye şifre alanı varsayılan olarak açık gösteriliyor.
+  hidePassword = signal(false);
 
+  // Demo/portföy amaçlı: giriş ekranı işverenlere gösterilecek, ekstra tıklama
+  // olmadan doğrudan "Giriş Yap"a basılabilsin diye admin bilgileri önceden dolduruluyor.
   form = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]]
+    email: ['admin@demo.local', [Validators.required, Validators.email]],
+    password: ['Admin123!', [Validators.required, Validators.minLength(6)]]
   });
 
   onSubmit(): void {
