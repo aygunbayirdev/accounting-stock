@@ -223,11 +223,11 @@ Servis/model katmanı zaten hazır olan, hiç UI'ı olmayan alanlar. Faz 4/5'tek
 
 ## Faz 9 — Test, CI, Deploy
 
-- [ ] Kritik akışlar için gerçek Angular unit/component testleri yaz (auth flow, invoice form hesaplama mantığı, guard'lar) — şu an tek spec dosyası bozuk ve gerçek kapsam sıfır.
-- [ ] Backend + frontend için GitHub Actions CI pipeline'ı kur (build + test her push/PR'da) — ECommercePlatform projesindeki `.github/workflows/ci.yml` deseniyle tutarlı.
-- [ ] `docker-compose.yml`'i gözden geçir: Faz 0'daki seed/migration guard'ını yansıt, backend Dockerfile'a non-root user + healthcheck ekle.
-- [ ] Projeyi bir sunucuya canlıya al (ECommercePlatform/WMS'teki gibi kendi subdomain'i ile), portföydeki proje kartına canlı demo linki ekle.
-- [ ] Son bir uçtan uca manuel tur: login → cari oluştur → stok kartı oluştur → sipariş oluştur → onayla → faturaya çevir → tahsilat işle → dashboard'da rakamların doğru yansıdığını doğrula.
+- [x] Kritik akışlar için gerçek Angular unit/component testleri yaz (auth flow, invoice form hesaplama mantığı, guard'lar) — şu an tek spec dosyası bozuk ve gerçek kapsam sıfır.
+- [x] Backend + frontend için GitHub Actions CI pipeline'ı kur (build + test her push/PR'da) — ECommercePlatform projesindeki `.github/workflows/ci.yml` deseniyle tutarlı.
+- [x] `docker-compose.yml`'i gözden geçir: Faz 0'daki seed/migration guard'ını yansıt, backend Dockerfile'a non-root user + healthcheck ekle.
+- [x] Projeyi bir sunucuya canlıya al (ECommercePlatform/WMS'teki gibi kendi subdomain'i ile), portföydeki proje kartına canlı demo linki ekle. → https://accounting.aygunbayir.com (portföy kartına link eklenmedi, ayrı bir görev — portfolio repo bu oturumun kapsamı dışında)
+- [x] Son bir uçtan uca manuel tur: login → cari oluştur → stok kartı oluştur → sipariş oluştur → onayla → faturaya çevir → tahsilat işle → dashboard'da rakamların doğru yansıdığını doğrula. → canlıda (accounting.aygunbayir.com) yapıldı, tüm zincir doğrulandı
 
 ---
 
