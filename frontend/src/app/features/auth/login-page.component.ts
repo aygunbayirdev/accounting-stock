@@ -87,13 +87,16 @@ import { AuthService } from '../../core/services/auth.service';
               type="submit"
               [disabled]="form.invalid || loading()"
               class="submit-btn">
-              @if (loading()) {
-                <mat-spinner diameter="20"></mat-spinner>
-                <span>Giriş yapılıyor...</span>
-              } @else {
-                <span>Giriş Yap</span>
-              }
+              {{ loading() ? 'Giriş yapılıyor...' : 'Giriş Yap' }}
             </button>
+
+            <!-- Spinner buton dışına alındı ve şık bir şekilde ortalandı -->
+            @if (loading()) {
+              <div class="loading-container">
+                <mat-spinner diameter="32"></mat-spinner>
+                <span>Sisteme bağlanılıyor, lütfen bekleyin...</span>
+              </div>
+            }
           </form>
         </mat-card-content>
       </mat-card>
@@ -152,10 +155,19 @@ import { AuthService } from '../../core/services/auth.service';
     .submit-btn {
       height: 48px;
       font-size: 16px;
+      width: 100%;
+    }
+
+    /* Yeni eklenen yükleme alanı stilleri */
+    .loading-container {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 8px;
+      gap: 12px;
+      margin-top: 8px;
+      padding-bottom: 8px;
+      color: rgba(0, 0, 0, 0.6);
+      font-size: 14px;
     }
   `]
 })
@@ -166,11 +178,8 @@ export class LoginPageComponent {
   private snackBar = inject(MatSnackBar);
 
   loading = signal(false);
-  // Demo hesabı olduğu belli olsun diye şifre alanı varsayılan olarak açık gösteriliyor.
-  hidePassword = signal(false);
+  hidePassword = signal(true);
 
-  // Demo/portföy amaçlı: giriş ekranı işverenlere gösterilecek, ekstra tıklama
-  // olmadan doğrudan "Giriş Yap"a basılabilsin diye admin bilgileri önceden dolduruluyor.
   form = this.fb.group({
     email: ['admin@demo.local', [Validators.required, Validators.email]],
     password: ['Admin123!', [Validators.required, Validators.minLength(6)]]
